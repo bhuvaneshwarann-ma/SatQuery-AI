@@ -118,6 +118,7 @@ SatQuery AI's specialist models were evaluated against genuine public benchmark 
 - **Python**: `3.10` or higher
 - **Node.js**: `18.0` or higher
 - **GPU**: NVIDIA GPU with $\ge 8$ GB VRAM recommended (CPU execution supported with fallback)
+- **Storage**: **25 GB free disk space recommended** (~12 GB active for PyTorch environment and 3B VLM weights cache, plus 13 GB operational buffer for dataset caching, inference tensor scratchpad, and visual evidence artifacts)
 
 ### 1. Clone the Repository
 ```bash
