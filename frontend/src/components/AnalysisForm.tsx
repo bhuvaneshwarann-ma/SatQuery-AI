@@ -473,16 +473,16 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({ onAnalyze, loading }
         </button>
       </div>
 
-      {/* Honest Latency & Hardware Lock State */}
+      {/* Elapsed Time & Execution Lock State */}
       {loading && (
         <div className="analysis-progress-notice">
           <div className="progress-notice-header">
             <span className="notice-icon">⏱</span>
-            <strong>Elapsed Time: {elapsedSeconds.toFixed(1)}s — Single-Model GPU Execution Lock Engaged</strong>
+            <strong>Elapsed Time: {elapsedSeconds.toFixed(1)}s — Execution Lock Active</strong>
           </div>
           <p className="progress-notice-desc">
             {taskMode === 'VQA'
-              ? 'Autoregressive 3B VLM reasoning via AdaptLLM/remote-sensing-Qwen2.5-VL-3B-Instruct (~50s typical on RTX 5050). Concurrent executions are blocked to guarantee zero CUDA OOM errors.'
+              ? 'Autoregressive 3B VLM reasoning via AdaptLLM/remote-sensing-Qwen2.5-VL-3B-Instruct (~50s typical). Concurrent executions are blocked to guarantee stability.'
               : taskMode === 'GROUNDING'
               ? 'Executing Grounding DINO Swin-Transformer cross-attention forward pass (~8–10s typical)...'
               : taskMode === 'CHANGE_DETECTION'

@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import type {
-  HealthResponse,
   AnalysisApiResponse,
   AnalyzePayload,
 } from './api/client';
-import { fetchHealth, analyzeRequest } from './api/client';
+import { analyzeRequest } from './api/client';
 import { Header } from './components/Header';
 import { AnalysisForm } from './components/AnalysisForm';
 import { ResultView } from './components/ResultView';
@@ -19,10 +18,6 @@ interface ActiveError {
 }
 
 export function App() {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [healthError, setHealthError] = useState<string | null>(null);
-  const [loadingHealth, setLoadingHealth] = useState(false);
-
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisApiResponse | null>(null);
   const [error, setError] = useState<ActiveError | null>(null);
@@ -37,27 +32,6 @@ export function App() {
     second: null,
     sar: null,
   });
-
-  // Poll health telemetry
-  const loadHealth = useCallback(async () => {
-    try {
-      setLoadingHealth(true);
-      const data = await fetchHealth();
-      setHealth(data);
-      setHealthError(null);
-    } catch (err: any) {
-      setHealth(null);
-      setHealthError(err?.message || 'Failed to connect to SatQuery AI backend.');
-    } finally {
-      setLoadingHealth(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadHealth();
-    const interval = setInterval(loadHealth, 12000);
-    return () => clearInterval(interval);
-  }, [loadHealth]);
 
   const handleAnalyze = async (
     payload: AnalyzePayload,
@@ -100,18 +74,12 @@ export function App() {
       });
     } finally {
       setLoading(false);
-      // Refresh VRAM telemetry after analysis pass
-      loadHealth();
     }
   };
 
   return (
     <div className="satquery-app">
-      <Header
-        health={health}
-        healthError={healthError}
-        loadingHealth={loadingHealth}
-      />
+      <Header />
 
       <main className="main-content-container">
         {error && (

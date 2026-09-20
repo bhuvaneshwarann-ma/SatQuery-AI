@@ -164,7 +164,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
 
       {/* Visual Evidence Section */}
       <div className="result-evidence-section">
-        <h3 className="section-heading">Visual Evidence &amp; Multi-Sensor Telemetry</h3>
+        <h3 className="section-heading">Visual Evidence &amp; Multi-Sensor Analysis</h3>
 
         {/* Multi-Panel Comparison View for Bi-Temporal Change Detection */}
         {result.selected_tool === 'CHANGE_DETECTION' && (
@@ -321,7 +321,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
 
           {/* Evidence Metrics Table */}
           <div className="evidence-metrics-card">
-            <h4 className="metrics-card-title">Evidence Metrics &amp; Grounding Telemetry</h4>
+            <h4 className="metrics-card-title">Evidence Metrics &amp; Grounding Details</h4>
             <div className="metrics-scroll-area">
               <table className="metrics-table">
                 <tbody>

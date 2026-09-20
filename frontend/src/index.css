@@ -94,68 +94,6 @@ body {
   color: var(--text-muted);
 }
 
-/* System Status Telemetry Pill */
-.header-telemetry-pill {
-  background: var(--bg-slot);
-  border: 1px solid var(--border-color);
-  border-radius: 9999px;
-  padding: 0.45rem 1.1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  font-size: 0.82rem;
-}
-
-.telemetry-header {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.status-indicator-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.status-online {
-  background-color: var(--accent-emerald);
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
-}
-
-.status-offline {
-  background-color: var(--accent-rose);
-  box-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
-}
-
-.telemetry-refreshing {
-  color: var(--accent-cyan);
-  animation: pulse 1s infinite;
-  font-size: 0.6rem;
-}
-
-.telemetry-details {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  color: var(--text-secondary);
-}
-
-.telemetry-item strong {
-  color: var(--text-primary);
-}
-
-.telemetry-separator {
-  color: var(--border-color);
-}
-
-.telemetry-error {
-  color: var(--accent-rose);
-  font-weight: 500;
-}
 
 /* Main Layout */
 .main-content-container {

@@ -1,15 +1,6 @@
 import React from 'react';
-import type { HealthResponse } from '../api/client';
 
-interface HeaderProps {
-  health: HealthResponse | null;
-  healthError: string | null;
-  loadingHealth: boolean;
-}
-
-export const Header: React.FC<HeaderProps> = ({ health, healthError, loadingHealth }) => {
-  const isHealthy = health && health.status === 'healthy' && !healthError;
-
+export const Header: React.FC = () => {
   return (
     <header className="header-container">
       <div className="header-branding">
@@ -30,34 +21,7 @@ export const Header: React.FC<HeaderProps> = ({ health, healthError, loadingHeal
           Agentic Multi-Modal Remote Sensing &amp; Satellite Visual QA System
         </p>
       </div>
-
-      <div className="header-telemetry-pill">
-        <div className="telemetry-header">
-          <span className={`status-indicator-dot ${isHealthy ? 'status-online' : 'status-offline'}`} />
-          <span className="telemetry-label">Live System Status</span>
-          {loadingHealth && <span className="telemetry-refreshing">●</span>}
-        </div>
-
-        {isHealthy ? (
-          <div className="telemetry-details">
-            <span className="telemetry-item" title={health.gpu_name}>
-              <strong>GPU:</strong> {health.gpu_name.replace('NVIDIA GeForce ', '').replace(' Laptop GPU', '')}
-            </span>
-            <span className="telemetry-separator">|</span>
-            <span className="telemetry-item">
-              <strong>VRAM:</strong> {Math.round(health.free_vram_mb)} / {Math.round(health.total_vram_mb)} MB
-            </span>
-            <span className="telemetry-separator">|</span>
-            <span className="telemetry-item">
-              <strong>Tools:</strong> {health.registered_tools.length} active
-            </span>
-          </div>
-        ) : (
-          <div className="telemetry-details telemetry-error">
-            <span>{healthError ? 'Backend Offline' : 'Connecting to API...'}</span>
-          </div>
-        )}
-      </div>
     </header>
   );
 };
+
