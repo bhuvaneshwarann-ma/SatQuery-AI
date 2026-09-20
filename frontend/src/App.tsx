@@ -139,7 +139,7 @@ export function App() {
       </main>
 
       <footer className="footer-container">
-        <span>SatQuery AI · Smart India Hackathon Production MVP · AdaptLLM Qwen2.5-VL-3B · Grounding DINO · Siamese ResNet18</span>
+        <span>SatQuery AI · Production MVP · AdaptLLM Qwen2.5-VL-3B · Grounding DINO · Siamese ResNet18</span>
       </footer>
     </div>
   );

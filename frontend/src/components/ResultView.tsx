@@ -155,7 +155,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
           </div>
         )}
         <div className="notice-item notice-roadmap">
-          <span className="notice-badge roadmap-badge">SIH REQUIREMENT #5: PARTIAL / OPEN</span>
+          <span className="notice-badge roadmap-badge">REQUIREMENT #5: PARTIAL / OPEN</span>
           <span>
             Evaluated open-source domain-adapted remote-sensing VLM checkpoint zero-shot on RSVQA-LR (35.0% EM). Custom team-owned fine-tuning on Indian EO data is an active roadmap milestone.
           </span>

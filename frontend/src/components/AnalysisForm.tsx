@@ -206,7 +206,7 @@ export const AnalysisForm: React.FC<AnalysisFormProps> = ({ onAnalyze, loading }
       <div className="form-section demo-presets-section">
         <div className="section-label-row">
           <label className="section-label">
-            <span>⚡ SIH Evaluator Quick Presets</span>
+            <span>⚡ Evaluator Quick Presets</span>
             <span className="section-hint">One-click loading of verified sample assets and analytical queries</span>
           </label>
         </div>
