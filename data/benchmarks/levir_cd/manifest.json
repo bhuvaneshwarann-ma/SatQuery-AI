@@ -1,0 +1,252 @@
+{
+  "dataset_name": "LEVIR-CD",
+  "version": "Cropped-256 (ericyu/LEVIRCD_Cropped_256)",
+  "source_url": "https://huggingface.co/datasets/ericyu/LEVIRCD_Cropped_256",
+  "split": "test",
+  "subset_size": 20,
+  "selection_rule": "First 20 sequential samples from official test split (indices 0..19)",
+  "download_timestamp": "2026-09-20T03:45:46.451352+00:00",
+  "total_storage_bytes": 769734,
+  "samples": [
+    {
+      "sample_id": "levir_cd_test_0001",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0001_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0001_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0001_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0001_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0002",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0002_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0002_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0002_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0002_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0003",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0003_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0003_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0003_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0003_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0004",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0004_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0004_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0004_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0004_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0005",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0005_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0005_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0005_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0005_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0006",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0006_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0006_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0006_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0006_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0007",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0007_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0007_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0007_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0007_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0008",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0008_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0008_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0008_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0008_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0009",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0009_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0009_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0009_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0009_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0010",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0010_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0010_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0010_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0010_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0011",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0011_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0011_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0011_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0011_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0012",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0012_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0012_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0012_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0012_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0013",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0013_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0013_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0013_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0013_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0014",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0014_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0014_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0014_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0014_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0015",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0015_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0015_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0015_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0015_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0016",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0016_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0016_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0016_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0016_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0017",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0017_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0017_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0017_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0017_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0018",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0018_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0018_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0018_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0018_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0019",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0019_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0019_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0019_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0019_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "levir_cd_test_0020",
+      "query": "Detect structural changes between the pre-phase and post-phase satellite imagery.",
+      "image_path": "data/benchmarks/levir_cd/images_a/levir_cd_test_0020_t1.png",
+      "second_image_path": "data/benchmarks/levir_cd/images_b/levir_cd_test_0020_t2.png",
+      "label_path": "data/benchmarks/levir_cd/labels/levir_cd_test_0020_label.png",
+      "ground_truth": "data/benchmarks/levir_cd/labels/levir_cd_test_0020_label.png",
+      "dimensions": [
+        256,
+        256
+      ]
+    }
+  ]
+}

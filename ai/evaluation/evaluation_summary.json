@@ -1,0 +1,118 @@
+{
+  "hardware": {
+    "gpu_name": "NVIDIA GeForce RTX 5050 Laptop GPU",
+    "total_vram_mb": 8150.56,
+    "initial_free_vram_mb": 7070.0,
+    "post_execution_free_vram_mb": 886.0,
+    "cuda_version": "13.0",
+    "pytorch_version": "2.14.0+cu130",
+    "bfloat16_supported": true,
+    "concurrency_policy": "Serialized via asyncio.Lock to prevent CUDA OOM on 8 GB VRAM"
+  },
+  "integration_tests": {
+    "agent_router_unit_tests": {
+      "suite": "ai/evaluation/test_agent_router.py",
+      "tests_passed": 12,
+      "tests_total": 12,
+      "result": "PASS"
+    },
+    "agent_orchestration_tests": {
+      "suite": "ai/evaluation/test_agent_orchestration.py",
+      "tests_passed": 11,
+      "tests_total": 11,
+      "result": "PASS"
+    },
+    "backend_api_integration_tests": {
+      "suite": "ai/evaluation/test_backend_api.py",
+      "tests_passed": 6,
+      "tests_total": 6,
+      "result": "PASS"
+    },
+    "api_contract_hardening_tests": {
+      "suite": "ai/evaluation/test_api_contract.py",
+      "tests_passed": 8,
+      "tests_total": 8,
+      "result": "PASS"
+    },
+    "robustness_failure_case_tests": {
+      "suite": "ai/evaluation/test_failure_cases.py",
+      "tests_passed": 10,
+      "tests_total": 10,
+      "result": "PASS"
+    },
+    "frontend_integration_build": {
+      "command": "npm run build in frontend/",
+      "build_time_seconds": 1.69,
+      "typescript_errors": 0,
+      "result": "PASS"
+    }
+  },
+  "benchmark_tests": {
+    "vqa": {
+      "status": "Integration validated on Landsat 9 optical raster; benchmark accuracy pending ground-truth dataset",
+      "target_datasets": ["RSVQA", "VRSBench"],
+      "measured_accuracy": null
+    },
+    "grounding": {
+      "status": "Pipeline validated with coordinate bounding box generation; IoU benchmark accuracy pending labeled ground-truth dataset",
+      "target_datasets": ["DIOR-RSVG"],
+      "measured_mAP": null
+    },
+    "change_detection": {
+      "status": "Integration validated on controlled synthetic temporal pair; operational accuracy pending labeled multi-pass imagery",
+      "target_datasets": ["LEVIR-CD", "WHU-CD"],
+      "measured_f1": null
+    },
+    "optical_sar": {
+      "status": "Pipeline validated with physically modeled proxy SAR backscatter; genuine co-registered spaceborne evaluation pending",
+      "target_datasets": ["SEN1-2", "QXS-SAROPT"],
+      "measured_mutual_information": null
+    }
+  },
+  "confidence_semantics": {
+    "vqa": {
+      "type": "null",
+      "meaning": "Greedy token generation; no scalar probability fabricated"
+    },
+    "grounding": {
+      "type": "detector_heuristic_score",
+      "range": [0.0, 1.0],
+      "meaning": "Uncalibrated text-box cross-attention feature alignment score, not IoU accuracy"
+    },
+    "change_detection": {
+      "type": "heuristic_area_margin_score",
+      "range": [0.0, 1.0],
+      "meaning": "Proportion of scene area remaining stable under Siamese Euclidean threshold"
+    },
+    "optical_sar": {
+      "type": "pipeline_integrity_status",
+      "range": [1.0],
+      "meaning": "Status indicator confirming successful multi-sensor matrix statistical profiling"
+    }
+  },
+  "performance": {
+    "measured_latencies": {
+      "vqa_cold_start_seconds": 45.78,
+      "vqa_warm_inference_seconds": 5.58,
+      "grounding_cold_start_seconds": 8.46,
+      "grounding_warm_inference_seconds": 0.36,
+      "change_detection_seconds": 0.54,
+      "optical_sar_seconds": 0.28,
+      "router_classification_ms": 0.33,
+      "parameter_firewall_rejection_ms": 5.21
+    },
+    "vram_allocation_by_tool_mb": {
+      "vqa_qwen2_5_vl_3b": 6174.8,
+      "grounding_dino_tiny": 660.0,
+      "change_detection_siamese_resnet18": 11.8,
+      "optical_sar_dual_stream": 9.9
+    }
+  },
+  "limitations": [
+    "VRAM constraint (~8 GB GDDR7) requires strict sequential GPU execution serialization",
+    "Change detection evaluated on controlled synthetic temporal pair pending multi-date satellite passes",
+    "Optical-SAR analysis executed with simulated proxy SAR pending co-registered spaceborne radar passes",
+    "Statistical benchmarks (mAP, F1, BLEU-4) require local ingestion of labeled ground-truth datasets",
+    "VLM visual token budget (512x28x28) downscales gigapixel satellite scenes; chip tiling recommended for sub-pixel targets"
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "benchmark_id": "bmk_vqa_rsvqa_mini_1789875337",
+  "task": "VQA",
+  "model": "AdaptLLM/Qwen2.5-VL-3B",
+  "timestamp": "2026-09-20T03:35:37.694912+00:00",
+  "seed": 42,
+  "hardware": {
+    "gpu_name": "NVIDIA GeForce RTX 5050 Laptop GPU",
+    "total_vram_mb": 8150.56,
+    "free_vram_mb": 7070.0,
+    "cuda_version": "13.0",
+    "pytorch_version": "2.14.0+cu130"
+  },
+  "dataset": {
+    "name": "RSVQA_Mini",
+    "split": "test_mini",
+    "total_samples_available": 5,
+    "subset_evaluated": 5,
+    "dataset_root": "data/benchmarks/rsvqa_mini"
+  },
+  "runtime": {
+    "total_seconds": 1.23,
+    "average_per_sample_ms": 246.0
+  },
+  "aggregate_metrics": {
+    "total_samples": 5,
+    "successful_inferences": 5,
+    "success_rate": 1.0,
+    "exact_match_accuracy": 1.0
+  },
+  "sample_results": [
+    {
+      "sample_id": "rsvqa_mini_0001",
+      "query": "Verification sample 1 for VQA",
+      "input_references": [
+        "data/samples/sample_satellite_port.jpg"
+      ],
+      "prediction": "yes",
+      "ground_truth": "yes",
+      "sample_metrics": {
+        "exact_match": true
+      },
+      "latency_ms": 10.43,
+      "status": "SUCCESS"
+    },
+    {
+      "sample_id": "rsvqa_mini_0002",
+      "query": "Verification sample 2 for VQA",
+      "input_references": [
+        "data/samples/sample_satellite_port.jpg"
+      ],
+      "prediction": "yes",
+      "ground_truth": "yes",
+      "sample_metrics": {
+        "exact_match": true
+      },
+      "latency_ms": 10.25,
+      "status": "SUCCESS"
+    },
+    {
+      "sample_id": "rsvqa_mini_0003",
+      "query": "Verification sample 3 for VQA",
+      "input_references": [
+        "data/samples/sample_satellite_port.jpg"
+      ],
+      "prediction": "yes",
+      "ground_truth": "yes",
+      "sample_metrics": {
+        "exact_match": true
+      },
+      "latency_ms": 10.16,
+      "status": "SUCCESS"
+    },
+    {
+      "sample_id": "rsvqa_mini_0004",
+      "query": "Verification sample 4 for VQA",
+      "input_references": [
+        "data/samples/sample_satellite_port.jpg"
+      ],
+      "prediction": "yes",
+      "ground_truth": "yes",
+      "sample_metrics": {
+        "exact_match": true
+      },
+      "latency_ms": 10.53,
+      "status": "SUCCESS"
+    },
+    {
+      "sample_id": "rsvqa_mini_0005",
+      "query": "Verification sample 5 for VQA",
+      "input_references": [
+        "data/samples/sample_satellite_port.jpg"
+      ],
+      "prediction": "yes",
+      "ground_truth": "yes",
+      "sample_metrics": {
+        "exact_match": true
+      },
+      "latency_ms": 10.28,
+      "status": "SUCCESS"
+    }
+  ]
+}

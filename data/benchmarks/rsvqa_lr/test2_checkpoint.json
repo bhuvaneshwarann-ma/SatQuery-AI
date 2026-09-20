@@ -1,0 +1,42 @@
+{
+  "dataset": "RSVQA-LR",
+  "total_count": 2,
+  "completed_count": 2,
+  "timestamp": "2026-09-20T04:09:53.441226+00:00",
+  "completed_samples": {
+    "rsvqa_lr_val_0001": {
+      "sample_id": "rsvqa_lr_val_0001",
+      "query": "Is it a rural or an urban area",
+      "input_references": [
+        "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0001.png"
+      ],
+      "prediction": "It is a rural area. The presence of large, open fields with no visible infrastructure such as roads, buildings, or vehicles suggests that this is a less developed region, primarily used for agriculture. The uniformity of the fields and the lack of any significant urban development support this conclusion. Therefore, the answer is rural",
+      "normalized_prediction": "rural",
+      "ground_truth": "rural",
+      "normalized_ground_truth": "rural",
+      "sample_metrics": {
+        "exact_match": true,
+        "token_f1": 1.0
+      },
+      "latency_ms": 20787.92,
+      "status": "SUCCESS"
+    },
+    "rsvqa_lr_val_0002": {
+      "sample_id": "rsvqa_lr_val_0002",
+      "query": "What is the number of commercial buildings?",
+      "input_references": [
+        "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0002.png"
+      ],
+      "prediction": "The image provided does not contain any commercial buildings. It is an aerial view of agricultural fields, which are primarily used for farming purposes. The presence of roads and small structures could indicate farm infrastructure or access points to the fields. However, these do not constitute commercial buildings as they are not designed for business operations or housing. Therefore, the answer is There are 0 commercial buildings",
+      "normalized_prediction": "there are 0 commercial buildings",
+      "ground_truth": "5",
+      "normalized_ground_truth": "5",
+      "sample_metrics": {
+        "exact_match": false,
+        "token_f1": 0.0
+      },
+      "latency_ms": 20287.19,
+      "status": "SUCCESS"
+    }
+  }
+}

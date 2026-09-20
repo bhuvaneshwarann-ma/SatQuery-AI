@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SatQueryBenchmarkResult",
+  "description": "Standardized evaluation result envelope for SatQuery AI benchmark evaluations.",
+  "type": "object",
+  "required": [
+    "benchmark_id",
+    "task",
+    "model",
+    "timestamp",
+    "seed",
+    "hardware",
+    "dataset",
+    "runtime",
+    "aggregate_metrics",
+    "sample_results"
+  ],
+  "properties": {
+    "benchmark_id": {
+      "type": "string",
+      "description": "Unique benchmark run identifier (e.g. bmk_vqa_rsvqa_20260920)"
+    },
+    "task": {
+      "type": "string",
+      "enum": ["VQA", "GROUNDING", "CHANGE_DETECTION", "OPTICAL_SAR"],
+      "description": "Target analytical capability evaluated"
+    },
+    "model": {
+      "type": "string",
+      "description": "Specialist model or algorithmic engine evaluated"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 execution timestamp"
+    },
+    "seed": {
+      "type": "integer",
+      "description": "Fixed pseudo-random seed used for sample selection"
+    },
+    "hardware": {
+      "type": "object",
+      "required": ["gpu_name", "total_vram_mb", "free_vram_mb"],
+      "properties": {
+        "gpu_name": { "type": "string" },
+        "total_vram_mb": { "type": "number" },
+        "free_vram_mb": { "type": "number" },
+        "cuda_version": { "type": "string" },
+        "pytorch_version": { "type": "string" }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "required": ["name", "split", "subset_evaluated"],
+      "properties": {
+        "name": { "type": "string" },
+        "split": { "type": "string" },
+        "total_samples_available": { "type": ["integer", "null"] },
+        "subset_evaluated": { "type": "integer" },
+        "dataset_root": { "type": "string" }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "required": ["total_seconds", "average_per_sample_ms"],
+      "properties": {
+        "total_seconds": { "type": "number" },
+        "average_per_sample_ms": { "type": "number" }
+      }
+    },
+    "aggregate_metrics": {
+      "type": "object",
+      "description": "Task-specific aggregate statistical metrics (e.g. exact_match_acc, mean_iou, f1_score, pearson_r)",
+      "additionalProperties": true
+    },
+    "sample_results": {
+      "type": "array",
+      "description": "Per-sample evaluation telemetry and comparison against ground truth",
+      "items": {
+        "type": "object",
+        "required": ["sample_id", "status", "latency_ms"],
+        "properties": {
+          "sample_id": { "type": "string" },
+          "query": { "type": "string" },
+          "input_references": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "prediction": { "type": ["string", "object", "number", "null"] },
+          "ground_truth": { "type": ["string", "object", "number", "null"] },
+          "sample_metrics": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "latency_ms": { "type": "number" },
+          "status": {
+            "type": "string",
+            "enum": ["SUCCESS", "ERROR", "SKIPPED"]
+          }
+        }
+      }
+    }
+  }
+}

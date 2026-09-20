@@ -1,0 +1,212 @@
+{
+  "dataset_name": "RSVQA-LR",
+  "version": "RSVQA-LR-2k (dmarsili/RSVQA-LR-2k)",
+  "source_url": "https://huggingface.co/datasets/dmarsili/RSVQA-LR-2k",
+  "split": "validation",
+  "subset_size": 20,
+  "selection_rule": "First 20 sequential samples from official validation split (indices 0..19)",
+  "download_timestamp": "2026-09-20T03:46:02.399442+00:00",
+  "total_storage_bytes": 118320,
+  "samples": [
+    {
+      "sample_id": "rsvqa_lr_val_0001",
+      "query": "Is it a rural or an urban area",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0001.png",
+      "ground_truth": "rural",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0002",
+      "query": "What is the number of commercial buildings?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0002.png",
+      "ground_truth": "5",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0003",
+      "query": "How many farmlands are there?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0003.png",
+      "ground_truth": "62",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0004",
+      "query": "What is the number of buildings?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0004.png",
+      "ground_truth": "104",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0005",
+      "query": "How many small buildings are there?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0005.png",
+      "ground_truth": "100",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0006",
+      "query": "Are there less farmlands than water areas?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0006.png",
+      "ground_truth": "no",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0007",
+      "query": "What is the number of residential buildings next to a  farmland in the image?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0007.png",
+      "ground_truth": "98",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0008",
+      "query": "Is the number of commercial buildings equal to the number of grass areas?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0008.png",
+      "ground_truth": "no",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0009",
+      "query": "Is there a circular water area?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0009.png",
+      "ground_truth": "no",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0010",
+      "query": "Are there less forests than commercial buildings?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0010.png",
+      "ground_truth": "no",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0011",
+      "query": "Is the number of water areas equal to the number of large roads?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0011.png",
+      "ground_truth": "no",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0012",
+      "query": "What is the amount of medium water areas?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0012.png",
+      "ground_truth": "4",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0013",
+      "query": "Is a large building present?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0013.png",
+      "ground_truth": "no",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0014",
+      "query": "What is the number of water areas on the left of a  commercial building?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0014.png",
+      "ground_truth": "10",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0015",
+      "query": "Is a circular building present in the image?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0015.png",
+      "ground_truth": "no",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0016",
+      "query": "Are there more water areas than residential buildings in the image?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0016.png",
+      "ground_truth": "no",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0017",
+      "query": "Is the number of circular residential buildings equal to the number of commercial buildings?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0017.png",
+      "ground_truth": "no",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0018",
+      "query": "Is the number of buildings equal to the number of forests?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0018.png",
+      "ground_truth": "no",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0019",
+      "query": "What is the amount of rectangular buildings in the image?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0019.png",
+      "ground_truth": "65",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0020",
+      "query": "What is the amount of medium farmlands?",
+      "image_path": "data/benchmarks/rsvqa_lr/images/rsvqa_lr_val_0020.png",
+      "ground_truth": "0",
+      "dimensions": [
+        256,
+        256
+      ]
+    }
+  ]
+}
