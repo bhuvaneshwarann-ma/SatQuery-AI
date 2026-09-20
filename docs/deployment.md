@@ -9,7 +9,7 @@ This document specifies the deployment architecture, runtime environments, hardw
 
 ### 2.1 Local Demonstration Setup (Primary for Hackathon)
 * **Target OS**: Windows 11 / Linux (Ubuntu 22.04 LTS).
-* **Hardware Profile**: Minimum 16 GB System RAM, NVIDIA GPU with $\ge 8$ GB VRAM (CUDA-enabled) recommended for local model acceleration, and $\ge 25$ GB free disk storage (~12 GB active footprint + 13 GB operational buffer for weights, caching, and tensor scratchpads).
+* **Hardware Profile**: Minimum 16 GB System RAM, NVIDIA GPU with $\ge 8$ GB VRAM (CUDA-enabled) recommended for local model acceleration.
 * **CPU-Only Fallback**: Quantized execution mode enabled if discrete GPU is not present.
 * **Purpose**: Self-contained local demonstration without external internet or third-party API dependencies.
 
