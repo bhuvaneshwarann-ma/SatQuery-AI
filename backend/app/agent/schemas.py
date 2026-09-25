@@ -6,7 +6,7 @@ Uses Python dataclasses for zero-dependency runtime reliability.
 """
 
 from enum import Enum
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 from dataclasses import dataclass, field
 
 
@@ -69,7 +69,9 @@ class ToolResult:
     answer: str
     model: str
     evidence: Optional[Dict[str, Any]] = None
-    confidence: Optional[float] = None
+    confidence: Optional[Union[Dict[str, Any], float]] = None
+    image_description: Optional[str] = None
+    visual_evidence: Optional[List[Dict[str, str]]] = None
     latency_ms: Optional[float] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -110,19 +112,22 @@ class ExecutionTraceEntry:
 @dataclass
 class OrchestrationResult:
     """
-    Unified end-to-end response envelope produced by the Agent Orchestrator (Phase 6).
+    Unified end-to-end response envelope produced by the Agent Orchestrator (Phase 6 & 10).
     Consolidates tool execution output, observable execution trace, evidence,
+    uncalibrated evidence strength metrics, rich image interpretation,
     and operational telemetry for auditability.
     """
     status: str
     selected_tool: Optional[str]
     model: str
     answer: str
-    confidence: Optional[float]
-    evidence: Optional[Dict[str, Any]]
-    metadata: Dict[str, Any]
-    observable_execution_trace: List[Dict[str, Any]]
-    latency_ms: float
+    confidence: Optional[Union[Dict[str, Any], float]] = None
+    evidence: Optional[Dict[str, Any]] = None
+    image_description: Optional[str] = None
+    visual_evidence: Optional[List[Dict[str, str]]] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    observable_execution_trace: List[Dict[str, Any]] = field(default_factory=list)
+    latency_ms: float = 0.0
     error_type: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -133,6 +138,8 @@ class OrchestrationResult:
             "answer": self.answer,
             "confidence": self.confidence,
             "evidence": self.evidence,
+            "image_description": self.image_description,
+            "visual_evidence": self.visual_evidence,
             "metadata": self.metadata,
             "observable_execution_trace": self.observable_execution_trace,
             "latency_ms": self.latency_ms,

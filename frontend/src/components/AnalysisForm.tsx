@@ -61,7 +61,7 @@ const DEMO_PRESETS: DemoPreset[] = [
   },
   {
     id: 'demo-e',
-    badge: 'Safety & Firewall',
+    badge: 'Input Validation',
     title: 'Ambiguous Query Interception',
     description: 'Rejects invalid intent in <20ms before model execution',
     mode: 'AUTO',

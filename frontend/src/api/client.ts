@@ -18,12 +18,30 @@ export interface ObservableTraceStep {
   error?: string | null;
 }
 
+export interface ConfidenceInfo {
+  level: 'LOW' | 'MEDIUM' | 'HIGH';
+  score?: number | null;
+  type: string;
+  explanation: string;
+  signals?: Record<string, any>;
+  box_count?: number;
+  changed_pixels?: number;
+  correlation?: number;
+}
+
+export interface VisualEvidenceItem {
+  category: string;
+  description: string;
+}
+
 export interface AnalysisApiResponse {
   status: 'SUCCESS' | 'ERROR' | 'INVALID_INPUT' | 'NEEDS_CLARIFICATION' | 'UNREGISTERED_TOOL';
   selected_tool: string | null;
   model: string;
   answer: string;
-  confidence: number | null;
+  confidence: ConfidenceInfo | number | null;
+  image_description?: string | null;
+  visual_evidence?: VisualEvidenceItem[] | null;
   evidence: Record<string, any> | null;
   metadata: Record<string, any>;
   observable_execution_trace: ObservableTraceStep[];

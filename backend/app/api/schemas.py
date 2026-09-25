@@ -3,7 +3,7 @@ SatQuery AI — API Request & Response Schemas (Phase 7A)
 Pydantic schemas for FastAPI endpoints conforming to the Phase 6 OrchestrationResult contract.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 from pydantic import BaseModel, Field
 
 
@@ -40,12 +40,22 @@ class ToolDefinitionModel(BaseModel):
     resource_notes: str
 
 
+class ConfidenceDetailModel(BaseModel):
+    level: str = Field(..., description="LOW, MEDIUM, or HIGH evidence strength category")
+    score: Optional[float] = Field(None, description="Uncalibrated evidence-strength heuristic score (0.00-1.00)")
+    type: str = Field("model-derived-uncalibrated", description="Telemetry classification type")
+    explanation: str = Field(..., description="Auditable breakdown of evidence signals and uncertainty boundaries")
+    signals: Optional[Dict[str, Any]] = Field(None, description="Granular operational signal metrics")
+
+
 class AnalysisApiResponse(BaseModel):
     status: str = Field(..., description="Execution status: SUCCESS, ERROR, INVALID_INPUT, NEEDS_CLARIFICATION, UNREGISTERED_TOOL")
     selected_tool: Optional[str] = Field(None, description="Tool selected by AgentRouter (VQA, GROUNDING, CHANGE_DETECTION, OPTICAL_SAR)")
     model: str = Field(..., description="Specialist model or orchestrator name")
     answer: str = Field(..., description="Human-readable analytical answer or error message")
-    confidence: Optional[float] = Field(None, description="Statistical confidence score, or null if unsupported")
+    confidence: Optional[Union[ConfidenceDetailModel, Dict[str, Any], float]] = Field(None, description="Model-derived, uncalibrated evidence strength heuristic or legacy numeric score")
+    image_description: Optional[str] = Field(None, description="Concise overall scene description and visual interpretation")
+    visual_evidence: Optional[List[Dict[str, str]]] = Field(None, description="Dynamic list of observable or qualified visual evidence features")
     evidence: Optional[Dict[str, Any]] = Field(None, description="Structured spatial evidence payload (boxes, masks, cross-modal stats)")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Operational metadata and evaluation notes")
     observable_execution_trace: List[Dict[str, Any]] = Field(default_factory=list, description="Step-by-step observable pipeline trace")

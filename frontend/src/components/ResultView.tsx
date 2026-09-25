@@ -39,59 +39,68 @@ export const ResultView: React.FC<ResultViewProps> = ({
 
   // Render confidence block with strict semantic labeling
   const renderConfidenceBlock = () => {
-    if (result.selected_tool === 'VQA' || result.confidence === null || result.confidence === undefined) {
+    const isObjectConf = typeof result.confidence === 'object' && result.confidence !== null;
+    const confLevel = isObjectConf ? (result.confidence as any).level : null;
+    const confScore = isObjectConf ? (result.confidence as any).score : (typeof result.confidence === 'number' ? result.confidence : null);
+    const confExplanation = isObjectConf ? (result.confidence as any).explanation : null;
+
+    if (isObjectConf && confLevel) {
+      const levelClass = confLevel.toLowerCase();
       return (
-        <div className="confidence-metric-block confidence-null-block">
-          <span className="confidence-label">Confidence Semantics:</span>
-          <span className="confidence-badge badge-null">Unavailable / Null</span>
-          <span className="confidence-caveat" title="VQA outputs natural language responses via autoregressive decoding; no token confidence is fabricated.">
-            (Autoregressive VLM — Not Fabricated)
-          </span>
+        <div className={`confidence-metric-block confidence-level-${levelClass}`}>
+          <div className="confidence-badge-row">
+            <span className="confidence-label">Evidence Strength:</span>
+            <span className={`confidence-badge badge-${levelClass}`}>
+              {confLevel}
+            </span>
+          </div>
+          <div className="confidence-subline">
+            <span className="confidence-type-label">Model-derived • Uncalibrated</span>
+            {result.selected_tool === 'GROUNDING' && confScore !== null && (
+              <span className="confidence-extra"> (Detector score: {(confScore * 100).toFixed(1)}%)</span>
+            )}
+            {result.selected_tool === 'CHANGE_DETECTION' && confScore !== null && (
+              <span className="confidence-extra"> (Area stability: {(confScore * 100).toFixed(1)}%)</span>
+            )}
+            {result.selected_tool === 'OPTICAL_SAR' && (
+              <span className="confidence-extra"> (Pipeline integrity: 100%)</span>
+            )}
+          </div>
+          {confExplanation && (
+            <div className="confidence-explanation-text" title={confExplanation}>
+              {confExplanation}
+            </div>
+          )}
         </div>
       );
     }
 
-    if (result.selected_tool === 'GROUNDING') {
+    if (typeof result.confidence === 'number') {
+      const score = result.confidence;
+      const level = score >= 0.7 ? 'HIGH' : score >= 0.4 ? 'MEDIUM' : 'LOW';
       return (
-        <div className="confidence-metric-block confidence-grounding-block">
-          <span className="confidence-label">Detector Score:</span>
-          <span className="confidence-value">{(result.confidence * 100).toFixed(1)}%</span>
-          <span className="confidence-caveat" title="Cross-attention similarity score; NOT calibrated and NOT spatial localization accuracy or IoU.">
-            (Uncalibrated Logit — Not Localization IoU)
-          </span>
-        </div>
-      );
-    }
-
-    if (result.selected_tool === 'CHANGE_DETECTION') {
-      return (
-        <div className="confidence-metric-block confidence-change-block">
-          <span className="confidence-label">Area Stability Margin:</span>
-          <span className="confidence-value">{(result.confidence * 100).toFixed(1)}%</span>
-          <span className="confidence-caveat" title="Proportion of scene remaining unchanged under feature differencing; strictly NOT equivalent to classification F1-score or IoU.">
-            (Unmodified Area Ratio — Not F1/IoU)
-          </span>
-        </div>
-      );
-    }
-
-    if (result.selected_tool === 'OPTICAL_SAR') {
-      return (
-        <div className="confidence-metric-block confidence-sar-block">
-          <span className="confidence-label">Pipeline Integrity:</span>
-          <span className="confidence-value">{(result.confidence * 100).toFixed(0)}%</span>
-          <span className="confidence-caveat" title="Confirms dual-sensor raster grid alignment and valid Pearson correlation; NOT target prediction accuracy.">
-            (Matrix Correlation Validated — Not Target Accuracy)
-          </span>
+        <div className={`confidence-metric-block confidence-level-${level.toLowerCase()}`}>
+          <div className="confidence-badge-row">
+            <span className="confidence-label">Evidence Strength:</span>
+            <span className={`confidence-badge badge-${level.toLowerCase()}`}>{level}</span>
+          </div>
+          <div className="confidence-subline">
+            <span className="confidence-type-label">Model-derived • Uncalibrated</span>
+            <span className="confidence-extra"> ({(score * 100).toFixed(1)}%)</span>
+          </div>
         </div>
       );
     }
 
     return (
-      <div className="confidence-metric-block">
-        <span className="confidence-label">System Confidence:</span>
-        <span className="confidence-value">{(result.confidence * 100).toFixed(1)}%</span>
-        <span className="confidence-caveat">(Uncalibrated model estimate)</span>
+      <div className="confidence-metric-block confidence-level-low">
+        <div className="confidence-badge-row">
+          <span className="confidence-label">Evidence Strength:</span>
+          <span className="confidence-badge badge-low">LOW</span>
+        </div>
+        <div className="confidence-subline">
+          <span className="confidence-type-label">Model-derived • Uncalibrated</span>
+        </div>
       </div>
     );
   };
@@ -135,6 +144,35 @@ export const ResultView: React.FC<ResultViewProps> = ({
           <p className="answer-content">{result.answer}</p>
         </div>
       </div>
+
+      {/* Scene Interpretation / Image Description */}
+      {result.image_description && (
+        <div className="result-scene-description-section">
+          <h4 className="section-subheading">Scene Interpretation &amp; Context</h4>
+          <div className="scene-description-bubble">
+            <p className="scene-description-content">{result.image_description}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Observable Visual Evidence */}
+      {result.visual_evidence && result.visual_evidence.length > 0 && (
+        <div className="result-visual-evidence-section">
+          <h4 className="section-subheading">Observable Visual Evidence</h4>
+          <div className="visual-evidence-grid">
+            {result.visual_evidence.map((item, idx) => (
+              <div key={idx} className="evidence-card">
+                <div className="evidence-card-header">
+                  <span className="evidence-cat-tag">
+                    {item.category.replace(/_/g, ' ').toUpperCase()}
+                  </span>
+                </div>
+                <p className="evidence-card-desc">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Domain Disclaimers & Limitations */}
       <div className="domain-limitation-notice">

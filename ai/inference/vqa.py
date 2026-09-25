@@ -13,6 +13,10 @@ import torch
 from PIL import Image
 from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
 from qwen_vl_utils import process_vision_info
+from backend.app.services.confidence_service import (
+    extract_vqa_rich_evidence,
+    evaluate_vqa_confidence,
+)
 
 
 VLM_MODEL_ID = "AdaptLLM/remote-sensing-Qwen2.5-VL-3B-Instruct"
@@ -156,10 +160,21 @@ def run_vqa(
             clean_up_tokenization_spaces=False,
         )
 
-        answer = output_text[0].strip() if output_text else ""
+        raw_answer = output_text[0].strip() if output_text else ""
+        answer, image_description, visual_evidence = extract_vqa_rich_evidence(
+            raw_answer, query, image_path, img_w, img_h
+        )
+        conf_payload = evaluate_vqa_confidence(
+            query=query,
+            image_path=image_path,
+            answer=answer,
+            image_description=image_description,
+            visual_evidence=visual_evidence,
+            metadata={"model": VLM_MODEL_ID},
+        )
         latency_ms = round((time.perf_counter() - t_start) * 1000, 2)
 
-        # 4. Evidence Structure (factual metadata only — no fabricated visual tokens)
+        # 4. Evidence Structure (factual metadata and observable evidence features)
         evidence = [
             {
                 "type": "vqa_spatial_metadata",
@@ -168,6 +183,7 @@ def run_vqa(
                 "query": query.strip(),
                 "model": VLM_MODEL_ID,
                 "latency_ms": latency_ms,
+                "visual_evidence_count": len(visual_evidence),
             }
         ]
 
@@ -176,13 +192,18 @@ def run_vqa(
             "tool": "VQA",
             "model": VLM_MODEL_ID,
             "answer": answer,
-            "confidence": None,  # Explicitly null: confidence scoring to be integrated in confidence layer
+            "image_description": image_description,
+            "visual_evidence": visual_evidence,
+            "confidence": conf_payload,
             "latency_ms": latency_ms,
             "evidence": evidence,
             "metadata": {
                 "max_new_tokens": max_new_tokens,
                 "tokens_generated": len(generated_ids_trimmed[0]) if generated_ids_trimmed else 0,
                 "visual_token_bounds": f"{min_pixels}-{max_pixels}",
+                "confidence_type": conf_payload.get("type"),
+                "confidence_level": conf_payload.get("level"),
+                "confidence_score": conf_payload.get("score"),
             }
         }
 
