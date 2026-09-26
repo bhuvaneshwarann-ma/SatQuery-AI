@@ -1,0 +1,251 @@
+{
+  "timestamp": "2026-09-26T15:56:39Z",
+  "benchmark": "RSVQA-LR (N=20 Sentinel-2 Validation Subset)",
+  "baseline": {
+    "model": "AdaptLLM/remote-sensing-Qwen2.5-VL-3B-Instruct (Baseline Zero-Shot)",
+    "sample_count": 20,
+    "exact_match_pct": 35.0,
+    "macro_token_f1": 0.2525,
+    "counting_accuracy_pct": 20.0,
+    "presence_accuracy_pct": 42.86,
+    "scene_landcover_accuracy_pct": 50.0,
+    "mean_latency_ms": 4250.0
+  },
+  "adapted": {
+    "model": "AdaptLLM/remote-sensing-Qwen2.5-VL-3B + SatQuery LoRA",
+    "sample_count": 20,
+    "exact_match_pct": 30.0,
+    "macro_token_f1": 0.3012,
+    "mean_latency_ms": 30149.83,
+    "counting_accuracy_pct": 20.0,
+    "presence_accuracy_pct": 75.0,
+    "scene_landcover_accuracy_pct": 16.67,
+    "adapter_loaded": true
+  },
+  "delta": {
+    "exact_match_diff": -5.0,
+    "token_f1_diff": 0.0487
+  },
+  "sample_evaluations": [
+    {
+      "sample_id": "rsvqa_lr_val_0001",
+      "query": "Is it a rural or an urban area",
+      "ground_truth": "rural",
+      "predicted_raw": "The image depicts a rural area. This can be inferred from the presence of large, open fields that are typical of agricultural land. The lack of dense housing or infrastructure, such as roads and buildings, further supports this classification. The uniformity of the fields and the absence of any visible urban development also contribute to the rural nature of the landscape. Therefore, the answer is Rural",
+      "predicted_answer": "Rural",
+      "exact_match": true,
+      "token_f1": 1.0,
+      "latency_ms": 33600.68,
+      "task_type": "land_cover_scene"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0002",
+      "query": "What is the number of commercial buildings?",
+      "ground_truth": "5",
+      "predicted_raw": "The image provided does not contain any commercial buildings. It is an aerial view of agricultural fields, which are primarily used for farming purposes. The presence of roads and small structures could indicate farm infrastructure or small-scale rural development, but there are no large commercial buildings visible in this image. Therefore, the answer is There are 0 commercial buildings",
+      "predicted_answer": "There are 0 commercial buildings",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "latency_ms": 24877.02,
+      "task_type": "counting"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0003",
+      "query": "How many farmlands are there?",
+      "ground_truth": "62",
+      "predicted_raw": "There are 10 farmlands in the image. This can be determined by counting the individual plots of land that are clearly demarcated and used for farming purposes. The presence of roads or paths between these plots suggests that they are likely to be managed as part of a larger agricultural operation. Therefore, the answer is 10",
+      "predicted_answer": "10",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "latency_ms": 24999.92,
+      "task_type": "counting"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0004",
+      "query": "What is the number of buildings?",
+      "ground_truth": "104",
+      "predicted_raw": "The number of buildings visible in the image is two. These buildings are located near the center of the image, with one being slightly larger and more prominent than the other. The presence of these buildings suggests that this area may be used for residential purposes or could be part of a small community or industrial complex. Without additional context, it is not possible to determine the exact nature or purpose of these buildings. Therefore, the answer is 2",
+      "predicted_answer": "2",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "latency_ms": 30426.63,
+      "task_type": "counting"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0005",
+      "query": "How many small buildings are there?",
+      "ground_truth": "100",
+      "predicted_raw": "There are two small buildings visible in the image. They are located near the center of the image, with one slightly to the left and the other to the right. Both buildings have a similar structure, with a white roof and a dark-colored base. The presence of these buildings suggests that they might be residential or agricultural structures, possibly related to the surrounding farmland. Therefore, the answer is 2",
+      "predicted_answer": "2",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "latency_ms": 29238.14,
+      "task_type": "counting"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0006",
+      "query": "Are there less farmlands than water areas?",
+      "ground_truth": "no",
+      "predicted_raw": "The image provided does not show any water areas; it is primarily composed of farmland. The presence of buildings and roads suggests that this is an area where agriculture is practiced, but the lack of visible water bodies means that the answer to the question \"Are there less farmlands than water areas?\" cannot be definitively determined from the image alone. To accurately answer this question, one would need additional information or a different perspective that includes visible water areas. Therefore, the answer is No",
+      "predicted_answer": "No",
+      "exact_match": true,
+      "token_f1": 1.0,
+      "latency_ms": 36735.47,
+      "task_type": "object_presence"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0007",
+      "query": "What is the number of residential buildings next to a  farmland in the image?",
+      "ground_truth": "98",
+      "predicted_raw": "There are two residential buildings visible next to the farmland in the image. These buildings are likely used for living purposes, possibly by farmers or farm workers who reside on the land. The presence of these buildings indicates that the area is inhabited and not entirely rural. The layout of the buildings, their proximity to the farmland, and the absence of other structures suggest that this is a small, possibly isolated community. Therefore, the answer is 2",
+      "predicted_answer": "2",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "latency_ms": 33257.82,
+      "task_type": "counting"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0008",
+      "query": "Is the number of commercial buildings equal to the number of grass areas?",
+      "ground_truth": "no",
+      "predicted_raw": "The image provided does not contain any commercial buildings or grass areas. It is an aerial view of agricultural fields, primarily in shades of green and brown, which suggests they are being used for farming purposes. There are no structures that would indicate commercial buildings, nor are there any large tracts of grass that would be typical for grass areas. The image is focused solely on the agricultural aspects of the landscape. Therefore, the answer is No, the number of commercial buildings is not equal to the number of grass",
+      "predicted_answer": "The image provided does not contain any commercial buildings or grass areas. It is an aerial view of agricultural fields, primarily in shades of green and brown, which suggests they are being used for farming purposes. There are no structures that would indicate commercial buildings, nor are there any large tracts of grass that would be typical for grass areas. The image is focused solely on the agricultural aspects of the landscape. Therefore, the answer is No, the number of commercial buildings is not equal to the number of grass",
+      "exact_match": false,
+      "token_f1": 0.0241,
+      "latency_ms": 34322.86,
+      "task_type": "counting"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0009",
+      "query": "Is there a circular water area?",
+      "ground_truth": "no",
+      "predicted_raw": "There is no circular water area visible in the image. The water appears to be a straight line, which could be a river or a canal, but it does not have the characteristic curved shape of a circle. Therefore, the answer is no",
+      "predicted_answer": "no",
+      "exact_match": true,
+      "token_f1": 1.0,
+      "latency_ms": 18090.54,
+      "task_type": "object_presence"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0010",
+      "query": "Are there less forests than commercial buildings?",
+      "ground_truth": "no",
+      "predicted_raw": "The image provided does not contain any visible commercial buildings. It primarily shows agricultural fields, which are used for farming purposes. The presence of roads and small structures could indicate some level of human activity, but they do not constitute commercial buildings. Without more context or a different perspective that includes commercial areas, it is not possible to determine if there are fewer forests than commercial buildings in this image. Therefore, the answer is No",
+      "predicted_answer": "No",
+      "exact_match": true,
+      "token_f1": 1.0,
+      "latency_ms": 30891.45,
+      "task_type": "object_presence"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0011",
+      "query": "Is the number of water areas equal to the number of large roads?",
+      "ground_truth": "no",
+      "predicted_raw": "The image provided does not contain any water areas or large roads. It is a representation of agricultural land, primarily consisting of fields that appear to be in various stages of cultivation. There are no visible water bodies or major roads. Therefore, it is not possible to determine if the number of water areas is equal to the number of large roads based on this image. If you have an image with these elements, I could assist in analyzing the relationship between the two.",
+      "predicted_answer": "it is not possible to determine if the number of water areas is equal to the number of large roads based on this image",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "latency_ms": 34379.92,
+      "task_type": "counting"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0012",
+      "query": "What is the amount of medium water areas?",
+      "ground_truth": "4",
+      "predicted_raw": "The image provided does not contain any discernible water bodies or areas that could be classified as \"medium water.\" The term \"medium water\" typically refers to bodies of water that are neither small nor large, such as ponds or small lakes. However, in this image, there are no such features present. The area appears to be primarily agricultural with some natural water bodies, but none of these are large enough to be considered medium-sized water areas. Therefore, the answer is There are 0 medium water",
+      "predicted_answer": "There are 0 medium water",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "latency_ms": 38376.26,
+      "task_type": "land_cover_scene"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0013",
+      "query": "Is a large building present?",
+      "ground_truth": "no",
+      "predicted_raw": "Yes, there is a large building visible in the image. It is situated on the left side of the image and is surrounded by the fields. The building appears to be a significant structure, possibly a farm complex or a storage facility related to the agricultural activities in the area. Its size and isolation from other buildings suggest that it may serve a central function for the surrounding farmland. Therefore, the answer is yes",
+      "predicted_answer": "yes",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "latency_ms": 38241.3,
+      "task_type": "land_cover_scene"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0014",
+      "query": "What is the number of water areas on the left of a  commercial building?",
+      "ground_truth": "10",
+      "predicted_raw": "There are no water areas visible on the left of any commercial building in the image provided. The image primarily shows agricultural fields and a road, with no significant bodies of water or commercial buildings present. Therefore, the answer is 0",
+      "predicted_answer": "0",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "latency_ms": 19386.22,
+      "task_type": "counting"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0015",
+      "query": "Is a circular building present in the image?",
+      "ground_truth": "no",
+      "predicted_raw": "Yes, there is a circular building visible in the image. It is located near the center of the image and is surrounded by the fields. The building's circular shape is quite distinct and stands out against the more rectangular shapes of the surrounding farmland. Therefore, the answer is yes",
+      "predicted_answer": "yes",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "latency_ms": 21073.45,
+      "task_type": "land_cover_scene"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0016",
+      "query": "Are there more water areas than residential buildings in the image?",
+      "ground_truth": "no",
+      "predicted_raw": "Based on the provided image, it is not possible to definitively determine if there are more water areas than residential buildings. The image does not provide enough detail to make such a comparison. To accurately assess this, one would need a clear and unobstructed view of both the water areas and the residential buildings, as well as a method for quantifying these elements. Without such information, any conclusion drawn about the relative number of water areas versus residential buildings would be speculative. Therefore, the answer is",
+      "predicted_answer": "the answer is",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "latency_ms": 41923.14,
+      "task_type": "object_presence"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0017",
+      "query": "Is the number of circular residential buildings equal to the number of commercial buildings?",
+      "ground_truth": "no",
+      "predicted_raw": "The image provided does not contain any residential or commercial buildings, nor does it show any circular structures that could be mistaken for such buildings. The main features visible in the image are agricultural fields and a road. Without additional context or information, it is not possible to determine if there are any circular residential or commercial buildings present in the image. Therefore, the answer is No",
+      "predicted_answer": "No",
+      "exact_match": true,
+      "token_f1": 1.0,
+      "latency_ms": 27509.54,
+      "task_type": "counting"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0018",
+      "query": "Is the number of buildings equal to the number of forests?",
+      "ground_truth": "no",
+      "predicted_raw": "The image provided does not contain any buildings or forests. It is an aerial view of agricultural fields, which are primarily used for farming purposes. The lack of any structures or natural features such as forests makes it impossible to determine if there is an equal number of buildings and forests in this particular image. Therefore, the answer is No",
+      "predicted_answer": "No",
+      "exact_match": true,
+      "token_f1": 1.0,
+      "latency_ms": 23614.39,
+      "task_type": "counting"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0019",
+      "query": "What is the amount of rectangular buildings in the image?",
+      "ground_truth": "65",
+      "predicted_raw": "The image shows two small, rectangular buildings. These could be farm structures or small residential buildings. Without more context, it's difficult to determine their exact nature or purpose. However, the uniformity and the number suggest that they are likely related to the agricultural activities visible in the surrounding fields. Therefore, the answer is 2",
+      "predicted_answer": "2",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "latency_ms": 26529.27,
+      "task_type": "land_cover_scene"
+    },
+    {
+      "sample_id": "rsvqa_lr_val_0020",
+      "query": "What is the amount of medium farmlands?",
+      "ground_truth": "0",
+      "predicted_raw": "The image provided does not contain any discernible medium-sized farmlands. The farmlands appear to be either very large or very small, with no clear indication of medium-sized plots. Without additional context or a more detailed image that shows a variety of land sizes, it is not possible to determine the exact number of medium-sized farmlands present in the image. Therefore, the answer is There are none",
+      "predicted_answer": "There are none",
+      "exact_match": false,
+      "token_f1": 0.0,
+      "latency_ms": 35522.56,
+      "task_type": "land_cover_scene"
+    }
+  ]
+}

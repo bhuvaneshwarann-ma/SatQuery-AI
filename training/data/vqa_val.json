@@ -1,0 +1,26 @@
+[
+  {
+    "image": "data/samples/sample_satellite_port_proxy_sar.png",
+    "question": "Are maritime vessels highlighted by intense radar returns?",
+    "answer": "yes",
+    "task_type": "object_presence"
+  },
+  {
+    "image": "data/samples/sample_satellite_port.jpg",
+    "question": "What land cover surrounds the port facility?",
+    "answer": "Industrial built-up land and paved transport corridors bordering coastal water.",
+    "task_type": "land_cover"
+  },
+  {
+    "image": "data/samples/sample_sentinel1_sar_mauritius.jpg",
+    "question": "Are high-backscatter metallic or urban structures visible in the scene?",
+    "answer": "yes",
+    "task_type": "object_presence"
+  },
+  {
+    "image": "data/samples/sample_satellite_port.jpg",
+    "question": "Is the area dominated by water or built-up infrastructure?",
+    "answer": "The scene is split between coastal water and dense industrial port infrastructure.",
+    "task_type": "comparison"
+  }
+]

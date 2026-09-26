@@ -38,7 +38,7 @@
 | **Co-registration Compatibility** | PASS | Dimensions match exactly (720x480) |
 | **Cross-Modal Pearson Correlation ($r$)** | 0.574 | Moderate structural correlation with distinct microwave scattering |
 | **Radar-Dominant Structural Anomalies** | 28,276 px | Corner-reflector echoes (breakwaters/ships) with low optical contrast |
-| **Processing Latency** | 0.514s | Real-time cross-sensor GPU execution |
+| **Processing Latency** | 0.374s | Real-time cross-sensor GPU execution |
 | **Final Test Status** | `OPTICAL_SAR_TEST_RESULT=PASS` | Exit verdict |
 
 ## Hardware Observations

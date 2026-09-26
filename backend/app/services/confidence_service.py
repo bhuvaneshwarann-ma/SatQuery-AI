@@ -418,7 +418,7 @@ def evaluate_grounding_confidence(
 ) -> Dict[str, Any]:
     """
     Evaluates Grounding DINO evidence strength.
-    Explicitly labels score as 'Detector score — uncalibrated' (cross-attention logit),
+    Explicitly labels score as 'Model confidence — uncalibrated' (cross-attention logit),
     never ground-truth localization IoU or accuracy.
     """
     score = float(detector_score) if detector_score is not None else 0.0
@@ -431,13 +431,14 @@ def evaluate_grounding_confidence(
         level = ConfidenceLevel.HIGH
 
     explanation = (
-        f"Detector score: {score * 100:.1f}% across {box_count} spatial bounding box detection(s). "
+        f"Model confidence: {score:.2f} across {box_count} spatial bounding box detection(s). "
         "Uncalibrated cross-attention logit from Grounding DINO; strictly NOT spatial localization accuracy or IoU."
     )
 
     return {
         "level": level.value,
         "score": round(score, 4),
+        "model_confidence": round(score, 4),
         "type": "model-derived-uncalibrated",
         "explanation": explanation,
         "box_count": box_count,
@@ -464,12 +465,13 @@ def evaluate_change_confidence(
 
     explanation = (
         f"Change evidence confidence: model-derived heuristic (Area stability margin: {margin * 100:.1f}%, "
-        f"{changed_pixels:,} changed pixels). Controlled synthetic temporal pair — not an operational accuracy benchmark."
+        f"{changed_pixels:,} changed pixels). Unsupervised feature differencing; not an operational accuracy benchmark."
     )
 
     return {
         "level": level.value,
         "score": round(margin, 4),
+        "model_confidence": round(margin, 4),
         "type": "model-derived-uncalibrated",
         "explanation": explanation,
         "changed_pixels": changed_pixels,
@@ -483,19 +485,26 @@ def evaluate_optical_sar_confidence(
 ) -> Dict[str, Any]:
     """
     Evaluates Optical-SAR cross-modal evidence strength.
-    Preserves pipeline integrity status semantics with proxy SAR disclosure.
+    Derives score directly from radiometric Pearson correlation r.
     """
     corr = float(correlation) if correlation is not None else 0.0
     
-    # 1.0 represents 100% pipeline integrity confirmation
+    if corr >= 0.50:
+        level = ConfidenceLevel.HIGH
+    elif corr >= 0.30:
+        level = ConfidenceLevel.MEDIUM
+    else:
+        level = ConfidenceLevel.LOW
+
     explanation = (
-        f"Pipeline integrity status: 100% valid cross-modal radiometric correlation (Pearson r={corr:.3f}, "
-        f"{anomaly_pixels:,} radar anomaly pixels). DATA CLASSIFICATION: PROXY SAR — confirms dimensional alignment and matrix correlation; NOT target detection accuracy."
+        f"Cross-modal radiometric correlation: Pearson r={corr:.3f} across {anomaly_pixels:,} radar anomaly pixels. "
+        "Measures spatial-matrix correlation; task-level superiority has not been quantitatively established."
     )
 
     return {
-        "level": ConfidenceLevel.HIGH.value,
-        "score": 1.0,
+        "level": level.value,
+        "score": round(corr, 3),
+        "model_confidence": round(corr, 3),
         "type": "model-derived-uncalibrated",
         "explanation": explanation,
         "correlation": round(corr, 3),

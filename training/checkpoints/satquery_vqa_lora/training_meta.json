@@ -1,0 +1,42 @@
+{
+  "status": "COMPLETED",
+  "model_id": "AdaptLLM/remote-sensing-Qwen2.5-VL-3B-Instruct",
+  "adapter_dir": "training/checkpoints/satquery_vqa_lora",
+  "epochs": 1,
+  "total_samples": 17,
+  "steps_completed": 5,
+  "final_loss": 14.3462,
+  "loss_history": [
+    {
+      "step": 1,
+      "loss": 13.6538
+    },
+    {
+      "step": 2,
+      "loss": 13.4211
+    },
+    {
+      "step": 3,
+      "loss": 13.7123
+    },
+    {
+      "step": 4,
+      "loss": 12.7358
+    },
+    {
+      "step": 5,
+      "loss": 14.3462
+    }
+  ],
+  "training_duration_seconds": 166.89,
+  "lora_parameters": {
+    "rank": 8,
+    "alpha": 16,
+    "target_modules": [
+      "q_proj",
+      "v_proj"
+    ]
+  },
+  "device": "cpu",
+  "torch_dtype": "torch.bfloat16"
+}

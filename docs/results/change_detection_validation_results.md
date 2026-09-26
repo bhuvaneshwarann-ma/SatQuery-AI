@@ -25,7 +25,7 @@
 
 | Metric | Value | Unit |
 | :----- | ----: | :--- |
-| **Inference Latency** | 0.346 | seconds |
+| **Inference Latency** | 0.273 | seconds |
 | **Total Image Pixels** | 345,600 | pixels |
 | **Changed Pixels Detected** | 8,640 | pixels |
 | **Change Percentage** | 2.50% | of scene area |

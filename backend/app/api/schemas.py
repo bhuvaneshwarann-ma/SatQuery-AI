@@ -57,7 +57,9 @@ class AnalysisApiResponse(BaseModel):
     image_description: Optional[str] = Field(None, description="Concise overall scene description and visual interpretation")
     visual_evidence: Optional[List[Dict[str, str]]] = Field(None, description="Dynamic list of observable or qualified visual evidence features")
     evidence: Optional[Dict[str, Any]] = Field(None, description="Structured spatial evidence payload (boxes, masks, cross-modal stats)")
+    task_plan: Optional[Dict[str, Any]] = Field(None, description="Structured multi-tool task plan and policy status")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Operational metadata and evaluation notes")
     observable_execution_trace: List[Dict[str, Any]] = Field(default_factory=list, description="Step-by-step observable pipeline trace")
     latency_ms: float = Field(..., description="Total pipeline latency in milliseconds")
     error_type: Optional[str] = Field(None, description="Diagnostic error category if non-successful")
+

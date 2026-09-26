@@ -34,6 +34,24 @@ export interface VisualEvidenceItem {
   description: string;
 }
 
+export interface TaskPlanStepInfo {
+  tool: string;
+  purpose: string;
+  required_inputs: string[];
+  parameters: Record<string, any>;
+}
+
+export interface StructuredTaskPlanInfo {
+  intent: string;
+  target?: string | null;
+  requires_temporal_pair: boolean;
+  requires_spatial_evidence: boolean;
+  is_multi_tool: boolean;
+  policy_validated: boolean;
+  policy_notes: string[];
+  plan: TaskPlanStepInfo[];
+}
+
 export interface AnalysisApiResponse {
   status: 'SUCCESS' | 'ERROR' | 'INVALID_INPUT' | 'NEEDS_CLARIFICATION' | 'UNREGISTERED_TOOL';
   selected_tool: string | null;
@@ -43,11 +61,13 @@ export interface AnalysisApiResponse {
   image_description?: string | null;
   visual_evidence?: VisualEvidenceItem[] | null;
   evidence: Record<string, any> | null;
+  task_plan?: StructuredTaskPlanInfo | null;
   metadata: Record<string, any>;
   observable_execution_trace: ObservableTraceStep[];
   latency_ms: number;
   error_type: string | null;
 }
+
 
 export interface HealthResponse {
   status: string;

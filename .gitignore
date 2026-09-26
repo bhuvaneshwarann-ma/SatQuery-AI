@@ -33,4 +33,10 @@ Thumbs.db
 
 # Temporary / Scratch
 *.log
+*.dat
 data/uploads/
+scratch/
+test_junc/
+runs/
+training/offload/
+training/checkpoints/offload/

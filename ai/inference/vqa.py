@@ -122,6 +122,18 @@ def run_vqa(
             device_map="auto",
         )
 
+        model_name = VLM_MODEL_ID
+        adapter_path = params.get("adapter_path") or os.environ.get("VQA_LORA_ADAPTER_DIR", "training/checkpoints/satquery_vqa_lora")
+        if adapter_path and os.path.exists(os.path.join(adapter_path, "adapter_config.json")):
+            try:
+                from peft import PeftModel
+                offload_dir = os.path.join(os.path.dirname(adapter_path), "offload")
+                os.makedirs(offload_dir, exist_ok=True)
+                model = PeftModel.from_pretrained(model, adapter_path, offload_dir=offload_dir)
+                model_name = f"{VLM_MODEL_ID} + SatQuery-LoRA"
+            except Exception as peft_err:
+                print(f"[VQA] Notice: Base model loaded without adapter: {peft_err}")
+
         messages = [
             {
                 "role": "user",
@@ -145,11 +157,22 @@ def run_vqa(
         inputs = inputs.to(model.device)
 
         with torch.inference_mode():
-            generated_ids = model.generate(
-                **inputs,
-                max_new_tokens=max_new_tokens,
-                do_sample=do_sample,
-            )
+            try:
+                generated_ids = model.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=do_sample,
+                )
+            except Exception as gen_err:
+                if hasattr(model, "base_model"):
+                    print(f"[VQA] Notice: PEFT generate fallback to base model: {gen_err}")
+                    generated_ids = model.base_model.generate(
+                        **inputs,
+                        max_new_tokens=max_new_tokens,
+                        do_sample=do_sample,
+                    )
+                else:
+                    raise gen_err
 
         generated_ids_trimmed = [
             out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
@@ -170,7 +193,7 @@ def run_vqa(
             answer=answer,
             image_description=image_description,
             visual_evidence=visual_evidence,
-            metadata={"model": VLM_MODEL_ID},
+            metadata={"model": model_name},
         )
         latency_ms = round((time.perf_counter() - t_start) * 1000, 2)
 
@@ -181,7 +204,7 @@ def run_vqa(
                 "image_reference": image_path,
                 "dimensions": {"width": img_w, "height": img_h},
                 "query": query.strip(),
-                "model": VLM_MODEL_ID,
+                "model": model_name,
                 "latency_ms": latency_ms,
                 "visual_evidence_count": len(visual_evidence),
             }
@@ -190,7 +213,7 @@ def run_vqa(
         return {
             "status": "SUCCESS",
             "tool": "VQA",
-            "model": VLM_MODEL_ID,
+            "model": model_name,
             "answer": answer,
             "image_description": image_description,
             "visual_evidence": visual_evidence,

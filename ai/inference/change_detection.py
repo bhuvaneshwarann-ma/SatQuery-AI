@@ -21,13 +21,36 @@ from PIL import Image, ImageDraw, ImageFont
 CHANGE_MODEL_ID = "Siamese-ResNet18-FeatureDifferencer"
 
 
+class LightweightChangeDecoder(nn.Module):
+    """
+    Lightweight trainable decoder head for Siamese feature difference maps.
+    Refines multi-scale convolutional residual features into calibrated change probabilities.
+    """
+    def __init__(self, in_channels: int = 192, hidden_channels: int = 64):
+        super().__init__()
+        self.conv1 = nn.Conv2d(in_channels, hidden_channels, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(hidden_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(hidden_channels, 1, kernel_size=1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, diff_feat1, diff_feat2, target_size):
+        diff2_up = F.interpolate(diff_feat2, size=diff_feat1.shape[2:], mode="bilinear", align_corners=False)
+        fused = torch.cat([diff_feat1, diff2_up], dim=1)
+        x = self.relu(self.bn1(self.conv1(fused)))
+        logits = self.conv2(x)
+        out = self.sigmoid(logits)
+        return F.interpolate(out, size=target_size, mode="bilinear", align_corners=False)
+
+
 class SiameseResNetChangeDetector(nn.Module):
     """
-    Siamese Deep Feature Difference Architecture for Bi-Temporal Change Detection.
+    Siamese Deep Feature Difference & Decoder Architecture for Bi-Temporal Change Detection.
     Uses a shared pre-trained ResNet backbone to extract multi-scale spatial features,
-    computing deep differential distance maps between registered timestamps T1 and T2.
+    computing deep differential distance maps between registered timestamps T1 and T2,
+    with an optional lightweight refinement decoder head.
     """
-    def __init__(self, pretrained: bool = True):
+    def __init__(self, pretrained: bool = True, use_decoder: bool = False):
         super().__init__()
         weights = models.ResNet18_Weights.DEFAULT if pretrained else None
         base_resnet = models.resnet18(weights=weights)
@@ -39,6 +62,8 @@ class SiameseResNetChangeDetector(nn.Module):
         )
         self.layer1 = base_resnet.layer1
         self.layer2 = base_resnet.layer2
+        self.use_decoder = use_decoder
+        self.decoder = LightweightChangeDecoder(in_channels=192, hidden_channels=64) if use_decoder else None
 
     def extract_features(self, x):
         feat0 = self.stem(x)
@@ -50,15 +75,22 @@ class SiameseResNetChangeDetector(nn.Module):
         t1_f1, t1_f2 = self.extract_features(t1)
         t2_f1, t2_f2 = self.extract_features(t2)
 
+        target_size = (t1.shape[2], t1.shape[3])
+
+        if self.use_decoder and self.decoder is not None:
+            diff1 = torch.abs(t1_f1 - t2_f1)
+            diff2 = torch.abs(t1_f2 - t2_f2)
+            return self.decoder(diff1, diff2, target_size)
+
         dist1 = torch.norm(t1_f1 - t2_f1, dim=1, keepdim=True)
         dist2 = torch.norm(t1_f2 - t2_f2, dim=1, keepdim=True)
 
-        target_size = (t1.shape[2], t1.shape[3])
         dist1_up = F.interpolate(dist1, size=target_size, mode="bilinear", align_corners=False)
         dist2_up = F.interpolate(dist2, size=target_size, mode="bilinear", align_corners=False)
 
         fused_dist = 0.5 * dist1_up + 0.5 * dist2_up
         return fused_dist
+
 
 
 def render_evidence_composite(
@@ -256,8 +288,9 @@ def run_change_detection(
 
     # 5. Parameter Validation: Threshold
     try:
-        raw_threshold = params.get("threshold", 0.42)
+        raw_threshold = params.get("threshold", 0.30)
         threshold = float(raw_threshold)
+
         if not (0.10 <= threshold <= 0.90):
             raise ValueError(f"Threshold {threshold} is outside authorized registry bounds [0.10, 0.90].")
     except (ValueError, TypeError) as th_err:

@@ -15,11 +15,11 @@
 
 | Prompt | Detections | Confidence (Min - Max) | Time (s) | Status |
 | :----- | ---------: | ---------------------: | -------: | :----- |
-| `ship` | 1 | 0.46 - 0.46 | 1.42s | SUCCESS |
-| `boat` | 1 | 0.47 - 0.47 | 0.50s | SUCCESS |
-| `river` | 1 | 0.84 - 0.84 | 0.36s | SUCCESS |
-| `water` | 1 | 0.78 - 0.78 | 0.37s | SUCCESS |
-| `island` | 1 | 0.50 - 0.50 | 0.36s | SUCCESS |
+| `ship` | 1 | 0.46 - 0.46 | 2.30s | SUCCESS |
+| `boat` | 1 | 0.47 - 0.47 | 0.38s | SUCCESS |
+| `river` | 1 | 0.84 - 0.84 | 0.38s | SUCCESS |
+| `water` | 1 | 0.78 - 0.78 | 0.39s | SUCCESS |
+| `island` | 1 | 0.50 - 0.50 | 0.41s | SUCCESS |
 
 ## Hardware Observations
 * **VRAM Before Loading**: Free: 7070.0 MB | Alloc: 0.0 MB

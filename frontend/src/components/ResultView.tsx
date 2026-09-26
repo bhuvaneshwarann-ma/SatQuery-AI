@@ -433,6 +433,80 @@ export const ResultView: React.FC<ResultViewProps> = ({
         </div>
       </div>
 
+      {/* Structured Agent Task Plan (Phase 3 & 11) */}
+      {result.task_plan && (() => {
+        const plan = result.task_plan;
+        return (
+          <div className="task-plan-card" style={{
+            marginBottom: '1.5rem',
+            padding: '1.25rem',
+            borderRadius: '8px',
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h3 className="section-heading" style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>🧭</span> Structured Agent Task Plan
+              </h3>
+              <span style={{
+                fontSize: '0.75rem',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '12px',
+                background: plan.policy_validated ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                color: plan.policy_validated ? '#4ade80' : '#f87171',
+                border: `1px solid ${plan.policy_validated ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                fontFamily: 'var(--font-mono)'
+              }}>
+                {plan.policy_validated ? '✓ Policy Firewall Validated' : '⚠ Validation Alert'}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1rem', fontSize: '0.85rem' }}>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Identified Intent: </span>
+                <strong>{plan.intent}</strong>
+              </div>
+              {plan.target && (
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Target Entity: </span>
+                  <span style={{ color: 'var(--color-primary)' }}>{plan.target}</span>
+                </div>
+              )}
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Temporal Ingestion: </span>
+                <span>{plan.requires_temporal_pair ? 'Bitemporal Pair Required' : 'Single Scene'}</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>ORCHESTRATED TOOL SEQUENCE:</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                {plan.plan.map((step, idx) => (
+                  <React.Fragment key={idx}>
+                    <div style={{
+                      display: 'inline-flex',
+                      flexDirection: 'column',
+                      padding: '0.4rem 0.75rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255, 255, 255, 0.1)'
+                    }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#38bdf8' }}>
+                        {idx + 1}. {step.tool}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        {step.purpose}
+                      </span>
+                    </div>
+                    {idx < plan.plan.length - 1 && (
+                      <span style={{ color: 'var(--text-muted)', fontWeight: 'bold' }}>➔</span>
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Observable Execution Trace Timeline */}
       <div className="result-trace-section">
         <div className="trace-header-row">

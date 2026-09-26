@@ -151,6 +151,28 @@ class TestAgentRouter(unittest.TestCase):
         self.assertIsNone(res.selected_tool)
         self.assertIn("not registered", res.reason)
 
+    # Test 11: Compound multi-tool query: change + grounding + description
+    def test_11_compound_multi_tool_change_query(self):
+        req = AnalysisRequest(
+            query="What changed in the built-up area between these two dates, and where?",
+            image_path=self.sample_img,
+            second_image_path=self.sample_t2
+        )
+        res = AgentRouter.route(req)
+        self.assertEqual(res.status, RoutingStatus.ROUTED)
+        self.assertEqual(res.selected_tool, "MULTI_TOOL")
+        self.assertEqual(res.task, TaskType.MULTI_TOOL)
+        self.assertIsNotNone(res.task_plan)
+        self.assertTrue(res.task_plan.is_multi_tool)
+        self.assertEqual(res.task_plan.intent, "CHANGE_ANALYSIS")
+        self.assertEqual(res.task_plan.target, "built_up_area")
+        self.assertTrue(res.task_plan.requires_temporal_pair)
+        self.assertTrue(res.task_plan.requires_spatial_evidence)
+        step_tools = [s.tool for s in res.task_plan.plan]
+        self.assertEqual(step_tools, ["CHANGE_DETECTION", "GROUNDING", "VQA"])
+        self.assertTrue(res.task_plan.policy_validated)
+
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -1,0 +1,104 @@
+[
+  {
+    "image": "data/samples/sample_satellite_port_t2_synthetic.jpg",
+    "question": "Are there newly excavated dock basins in this observation?",
+    "answer": "yes",
+    "task_type": "object_presence"
+  },
+  {
+    "image": "data/samples/sample_sentinel1_sar_mauritius.jpg",
+    "question": "What sensor modality produced this imagery?",
+    "answer": "Synthetic Aperture Radar (SAR) microwave backscatter.",
+    "task_type": "scene"
+  },
+  {
+    "image": "data/samples/sample_sentinel1_sar_mauritius.jpg",
+    "question": "What does dark, low-intensity backscatter represent in this radar scene?",
+    "answer": "Smooth water surfaces causing specular reflection away from the radar antenna.",
+    "task_type": "land_cover"
+  },
+  {
+    "image": "data/samples/sample_satellite_port_proxy_sar.png",
+    "question": "Is this optical reflectance or simulated radar backscatter?",
+    "answer": "Simulated proxy radar backscatter highlighting high-reflectance structural edges.",
+    "task_type": "scene"
+  },
+  {
+    "image": "data/samples/sample_satellite_port.jpg",
+    "question": "Is there an airport or runway visible in this scene?",
+    "answer": "no",
+    "task_type": "object_presence"
+  },
+  {
+    "image": "data/samples/sample_satellite_port_t2_synthetic.jpg",
+    "question": "What is the primary land cover classification of the expanded zone?",
+    "answer": "Impervious industrial built-up surface.",
+    "task_type": "land_cover"
+  },
+  {
+    "image": "data/samples/sample_sentinel1_sar_mauritius.jpg",
+    "question": "Compare the backscatter between the ocean and the landmass.",
+    "answer": "The landmass exhibits high textured backscatter, whereas the calm ocean surface is dark.",
+    "task_type": "comparison"
+  },
+  {
+    "image": "data/samples/sample_satellite_port_t2_synthetic.jpg",
+    "question": "How many ships are docked along the expanded quays?",
+    "answer": "4",
+    "task_type": "counting"
+  },
+  {
+    "image": "data/samples/sample_satellite_port.jpg",
+    "question": "Are there cargo ships docked along the berths?",
+    "answer": "yes",
+    "task_type": "object_presence"
+  },
+  {
+    "image": "data/samples/sample_satellite_port_t2_synthetic.jpg",
+    "question": "Where are the new construction alterations concentrated?",
+    "answer": "Along the eastern shoreline where new berth fingers extend into the waterway.",
+    "task_type": "spatial_relation"
+  },
+  {
+    "image": "data/samples/sample_satellite_port.jpg",
+    "question": "How many large cargo vessels are visibly berthed at the docks?",
+    "answer": "3",
+    "task_type": "counting"
+  },
+  {
+    "image": "data/samples/sample_sentinel1_sar_mauritius.jpg",
+    "question": "Where are the brightest radar echoes concentrated?",
+    "answer": "On urban settlements, steep terrain faces, and vessel structures.",
+    "task_type": "spatial_relation"
+  },
+  {
+    "image": "data/samples/sample_satellite_port.jpg",
+    "question": "How many breakwaters protect the harbor basin?",
+    "answer": "1",
+    "task_type": "counting"
+  },
+  {
+    "image": "data/samples/sample_satellite_port_t2_synthetic.jpg",
+    "question": "Describe the visible maritime port structures in this image.",
+    "answer": "Expanded port berths with newly excavated dock facilities and extended quayside aprons.",
+    "task_type": "scene"
+  },
+  {
+    "image": "data/samples/sample_satellite_port.jpg",
+    "question": "What is the primary facility visible along the coastline?",
+    "answer": "A deep-water port terminal with berths, docked cargo vessels, and container staging areas.",
+    "task_type": "scene"
+  },
+  {
+    "image": "data/samples/sample_satellite_port.jpg",
+    "question": "Where are the container storage yards located relative to the berths?",
+    "answer": "Directly inland, adjacent to the northern and eastern dock aprons.",
+    "task_type": "spatial_relation"
+  },
+  {
+    "image": "data/samples/sample_satellite_port_proxy_sar.png",
+    "question": "How many intense specular echo clusters correspond to vessels?",
+    "answer": "3",
+    "task_type": "counting"
+  }
+]
