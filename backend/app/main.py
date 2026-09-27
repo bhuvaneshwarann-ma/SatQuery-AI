@@ -8,6 +8,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import JSONResponse
 
 from .api.routes import router as api_router, get_health
 
@@ -41,7 +42,10 @@ app.add_middleware(
 # API Router Mounting
 # -------------------------------------------------------------
 from .body_limit import BodyLimitMiddleware
+from .rate_limit import RateLimitMiddleware
+from .config import PUBLIC_DEPLOYMENT, PUBLIC_API_KEY
 app.add_middleware(BodyLimitMiddleware)
+app.add_middleware(RateLimitMiddleware)
 app.include_router(api_router, prefix="/api")
 
 # Expose convenience root health endpoint (without duplicating logic)
@@ -53,6 +57,19 @@ async def root_health():
 from .config import ARTIFACT_DIR
 ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/api/artifacts", StaticFiles(directory=str(ARTIFACT_DIR)), name="artifacts")
+
+@app.middleware("http")
+async def protect_artifacts(request, call_next):
+    if PUBLIC_DEPLOYMENT and request.url.path.startswith("/api/artifacts/"):
+        supplied = request.headers.get("x-api-key", "") or request.query_params.get("api_key", "")
+        if not supplied or supplied != PUBLIC_API_KEY:
+            return JSONResponse({"detail": "Artifact access requires X-API-Key."}, status_code=401)
+    return await call_next(request)
+
+@app.on_event("startup")
+async def cleanup_artifacts_on_startup():
+    from .maintenance import cleanup_expired_artifacts
+    cleanup_expired_artifacts()
 
 @app.get("/", include_in_schema=False)
 async def root():

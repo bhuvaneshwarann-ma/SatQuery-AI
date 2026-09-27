@@ -11,7 +11,7 @@ import asyncio
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 import torch
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Depends, Request
 from fastapi.responses import JSONResponse
 
 from ..agent.schemas import AnalysisRequest, OrchestrationResult
@@ -20,6 +20,8 @@ from ..services.orchestration_service import execute_agent_request
 from ..services.upload_service import save_upload_file, cleanup_file, resolve_sample_path
 from ..config import MAX_QUERY_CHARS, MAX_PENDING_REQUESTS
 from .schemas import HealthResponse, ToolDefinitionModel, AnalysisApiResponse
+from ..security import require_public_key
+from uuid import uuid4
 
 router = APIRouter()
 
@@ -65,7 +67,7 @@ async def get_health():
 
 
 @router.get("/tools", response_model=List[ToolDefinitionModel])
-async def get_tools():
+async def get_tools(_owner: str = Depends(require_public_key)):
     """
     Returns full tool registry catalog including schemas and parameter specifications.
     """
@@ -102,6 +104,7 @@ async def get_tools():
 
 @router.post("/analyze", response_model=AnalysisApiResponse)
 async def analyze_endpoint(
+    request: Request,
     query: str = Form(..., description="Natural language analytical question or command"),
     task: Optional[str] = Form(None, description="Optional explicit task override (VQA, GROUNDING, etc.)"),
     image: Optional[UploadFile] = File(None, description="Primary satellite image upload"),
@@ -114,6 +117,7 @@ async def analyze_endpoint(
     optical_image_path: Optional[str] = Form(None, description="Direct server filesystem path for Optical image (sample fallback)"),
     input_metadata: Optional[str] = Form(None, description="JSON metadata keyed by image_path, second_image_path or sar_image_path; RGB bands are zero-based"),
     evaluation_mode: bool = Form(False, description="Require approved benchmark formats and verified pair grids"),
+    _owner: str = Depends(require_public_key),
 ):
     global _pending_requests
     staged = []
@@ -153,6 +157,9 @@ async def analyze_endpoint(
                 await work
                 raise
         result.metadata["query"] = query
+        result.metadata["request_id"] = f"req-{uuid4().hex}"
+        result.metadata["owner_id"] = _owner
+        result.metadata["client_ip_hash"] = _owner
         result.metadata["input_provenance"] = provenance
         return result.to_dict()
     except (ValueError, TypeError) as exc:
@@ -168,7 +175,7 @@ async def analyze_endpoint(
 
 
 @router.get("/evaluation")
-async def evaluation_summary():
+async def evaluation_summary(_owner: str = Depends(require_public_key)):
     """Expose completed measured summaries; never use fallback numeric metrics."""
     from ..config import PROJECT_ROOT
     path = PROJECT_ROOT / "results" / "vqa_controlled_comparison.json"
@@ -181,7 +188,7 @@ async def evaluation_summary():
 
 
 @router.get("/benchmarks/readiness")
-async def benchmark_readiness():
+async def benchmark_readiness(_owner: str = Depends(require_public_key)):
     """Expose local benchmark availability without claiming evaluation accuracy."""
     from ..config import PROJECT_ROOT
     manifests = {

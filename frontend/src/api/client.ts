@@ -118,6 +118,8 @@ export interface AnalyzePayload {
 }
 
 const API_BASE = ''; // Uses Vite proxy to http://127.0.0.1:8000/api or relative /api
+const API_KEY = (import.meta as any).env?.VITE_API_KEY || '';
+const authHeaders = API_KEY ? { 'X-API-Key': API_KEY } : undefined;
 
 export async function fetchHealth(): Promise<HealthResponse> {
   const resp = await fetch(`${API_BASE}/api/health`);
@@ -128,7 +130,7 @@ export async function fetchHealth(): Promise<HealthResponse> {
 }
 
 export async function fetchTools(): Promise<ToolDefinitionModel[]> {
-  const resp = await fetch(`${API_BASE}/api/tools`);
+  const resp = await fetch(`${API_BASE}/api/tools`, { headers: authHeaders });
   if (!resp.ok) {
     throw new Error(`Failed to fetch tools registry: status ${resp.status}`);
   }
@@ -159,6 +161,7 @@ export async function analyzeRequest(payload: AnalyzePayload): Promise<AnalysisA
 
   const resp = await fetch(`${API_BASE}/api/analyze`, {
     method: 'POST',
+    headers: authHeaders,
     body: formData,
   });
 
@@ -186,5 +189,5 @@ export function getArtifactUrl(artifactRef?: string | null): string | null {
   if (!filename) {
     return null;
   }
-  return `${API_BASE}/api/artifacts/${filename}`;
+  return `${API_BASE}/api/artifacts/${filename}${API_KEY ? `?api_key=${encodeURIComponent(API_KEY)}` : ''}`;
 }
