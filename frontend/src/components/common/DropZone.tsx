@@ -114,11 +114,20 @@ export const DropZone: React.FC<DropZoneProps> = ({
         </div>
       ) : (
         <div
+          role="button"
+          tabIndex={disabled ? -1 : 0}
+          aria-label={`${label}. ${sublabel}`}
           style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'center' }}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => !disabled && inputRef.current?.click()}
+          onKeyDown={(event) => {
+            if (!disabled && (event.key === 'Enter' || event.key === ' ')) {
+              event.preventDefault();
+              inputRef.current?.click();
+            }
+          }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span className="dropzone-title">{label}</span>

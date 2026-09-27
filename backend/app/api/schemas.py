@@ -49,6 +49,11 @@ class ConfidenceDetailModel(BaseModel):
 
 
 class AnalysisApiResponse(BaseModel):
+    query: str = ""
+    execution_trace: List[Dict[str, Any]] = Field(default_factory=list)
+    tools_used: List[str] = Field(default_factory=list)
+    evidence_items: List[Dict[str, Any]] = Field(default_factory=list)
+    limitations: List[str] = Field(default_factory=list)
     status: str = Field(..., description="Execution status: SUCCESS, ERROR, INVALID_INPUT, NEEDS_CLARIFICATION, UNREGISTERED_TOOL")
     selected_tool: Optional[str] = Field(None, description="Tool selected by AgentRouter (VQA, GROUNDING, CHANGE_DETECTION, OPTICAL_SAR)")
     model: str = Field(..., description="Specialist model or orchestrator name")

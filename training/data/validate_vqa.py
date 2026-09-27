@@ -29,6 +29,9 @@ def validate_vqa_file(dataset_path: str, manifest_path: str = BENCHMARK_MANIFEST
     if not isinstance(data, list):
         return {"status": "FAIL", "error": "Dataset root must be a JSON array of examples."}
 
+    if not os.path.isfile(manifest_path):
+        return {"dataset_path": dataset_path, "status": "FAIL", "errors": ["Benchmark manifest missing"]}
+
     # Load benchmark manifest for leakage detection
     benchmark_queries = set()
     benchmark_images = set()
@@ -105,6 +108,14 @@ def validate_vqa_file(dataset_path: str, manifest_path: str = BENCHMARK_MANIFEST
 
 
 def main():
+    with open("training/data/vqa_train.json") as f:
+        train = json.load(f)
+    with open("training/data/vqa_val.json") as f:
+        val = json.load(f)
+    def group(item):
+        return "port" if "satellite_port" in item["image"] else item["image"]
+    if {group(x) for x in train} & {group(x) for x in val}:
+        raise ValueError("Training and validation share scenes")
     train_rep = validate_vqa_file("training/data/vqa_train.json")
     val_rep = validate_vqa_file("training/data/vqa_val.json")
 

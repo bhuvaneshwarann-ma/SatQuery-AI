@@ -40,6 +40,8 @@ app.add_middleware(
 # -------------------------------------------------------------
 # API Router Mounting
 # -------------------------------------------------------------
+from .body_limit import BodyLimitMiddleware
+app.add_middleware(BodyLimitMiddleware)
 app.include_router(api_router, prefix="/api")
 
 # Expose convenience root health endpoint (without duplicating logic)
@@ -48,9 +50,9 @@ async def root_health():
     return await get_health()
 
 # Mount generated evidence artifacts directory for frontend inspection
-artifacts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../docs/results"))
-if os.path.exists(artifacts_dir):
-    app.mount("/api/artifacts", StaticFiles(directory=artifacts_dir), name="artifacts")
+from .config import ARTIFACT_DIR
+ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/api/artifacts", StaticFiles(directory=str(ARTIFACT_DIR)), name="artifacts")
 
 @app.get("/", include_in_schema=False)
 async def root():

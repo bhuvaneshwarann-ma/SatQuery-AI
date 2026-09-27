@@ -5,6 +5,8 @@ Enforces multi-image validation, parameter range verification, structured eviden
 """
 
 import os
+from backend.app.services.artifact_service import new_artifact_path
+from backend.app.config import DEFAULT_CHANGE_THRESHOLD
 import time
 import gc
 import traceback
@@ -288,7 +290,7 @@ def run_change_detection(
 
     # 5. Parameter Validation: Threshold
     try:
-        raw_threshold = params.get("threshold", 0.30)
+        raw_threshold = params.get("threshold", DEFAULT_CHANGE_THRESHOLD)
         threshold = float(raw_threshold)
 
         if not (0.10 <= threshold <= 0.90):
@@ -347,14 +349,12 @@ def run_change_detection(
         latency_ms = round((time.perf_counter() - t_start) * 1000, 2)
 
         # Generate 3-panel evidence composite visualization
-        out_dir = os.path.join("docs", "results")
-        os.makedirs(out_dir, exist_ok=True)
-        visualization_path = os.path.join(out_dir, "change_detection_execution_artifact.jpg")
+        visualization_path = new_artifact_path("change_detection")
         render_evidence_composite(t1_img, t2_img, binary_mask, visualization_path)
 
         answer = (
             f"Bi-temporal change detection detected {changed_pixels:,} changed pixels ({change_pct:.2f}% of scene area) "
-            f"between T1 and T2 at differential distance threshold {threshold:.2f} (Controlled synthetic temporal evaluation pair)."
+            f"between T1 and T2 at differential distance threshold {threshold:.2f}; alignment must be verified independently for images without geospatial metadata."
         )
 
         evidence_dict = {
@@ -368,7 +368,7 @@ def run_change_detection(
             "change_percentage": change_pct,
             "dimensions": {"width": w1, "height": h1},
             "annotated_artifact": visualization_path,
-            "dataset_note": "Controlled synthetic temporal pair; not an operational accuracy benchmark.",
+            "dataset_note": "Input provenance is not inferred; unsupervised feature distances are not calibrated change probabilities.",
             "latency_ms": latency_ms,
         }
 
@@ -383,7 +383,7 @@ def run_change_detection(
             "changed_pixels": changed_pixels,
             "total_pixels": total_pixels,
             "change_percentage": change_pct,
-            "confidence": round(1.0 - (changed_pixels / total_pixels), 4) if total_pixels > 0 else 1.0,
+            "confidence": None,
             "latency_ms": latency_ms,
             "evidence": [evidence_dict],
             "evidence_reference": "differential_heatmap_mask_composite",
@@ -394,7 +394,7 @@ def run_change_detection(
                 "change_percentage": change_pct,
                 "image_reference_t1": image_path,
                 "image_reference_t2": second_image_path,
-                "data_classification": "Controlled synthetic temporal pair",
+                "data_classification": "user_supplied_pair",
             }
         }
 

@@ -73,8 +73,8 @@ class TestAgentRouter(unittest.TestCase):
         )
         res = AgentRouter.route(req)
         self.assertEqual(res.status, RoutingStatus.ROUTED)
-        self.assertEqual(res.selected_tool, "OPTICAL_SAR")
-        self.assertEqual(res.task, TaskType.OPTICAL_SAR)
+        self.assertEqual(res.selected_tool, "MULTI_TOOL")
+        self.assertEqual(res.task, TaskType.MULTI_TOOL)
         self.assertIn("optical_image_path", res.provided_inputs)
         self.assertIn("sar_image_path", res.provided_inputs)
 
@@ -110,7 +110,7 @@ class TestAgentRouter(unittest.TestCase):
         )
         res = AgentRouter.route(req)
         self.assertEqual(res.status, RoutingStatus.INVALID_INPUT)
-        self.assertEqual(res.selected_tool, "OPTICAL_SAR")
+        self.assertEqual(res.selected_tool, "MULTI_TOOL")
         self.assertTrue(any("requires a SAR radar image" in err for err in res.validation_errors))
 
     # Test 8: Ambiguous query

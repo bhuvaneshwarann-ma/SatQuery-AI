@@ -42,9 +42,16 @@ export const TopNav: React.FC<TopNavProps> = ({
           <span className="crumb-separator">/</span>
           <span className="crumb-title">{routeInfo.title}</span>
         </div>
+        <div className="mission-telemetry" aria-label="Mission telemetry">
+          <span className="telemetry-beacon" />
+          <span>MISSION CONTROL</span>
+          <span className="telemetry-divider" />
+          <span>EO-01</span>
+        </div>
       </div>
 
       <div className="top-nav-right">
+        <span className="top-nav-utc">UTC {new Date().toISOString().slice(11, 19)}</span>
         {/* Search Trigger */}
         <button
           type="button"

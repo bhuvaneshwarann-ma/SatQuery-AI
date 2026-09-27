@@ -20,6 +20,16 @@ interface DemoPreset {
 
 const DEMO_PRESETS: DemoPreset[] = [
   {
+    id: 'demo-complete',
+    title: 'Complete Multisensor Demo',
+    mode: 'AUTO',
+    query: 'Compare these dates and use the optical and SAR images together to explain built-up and water-covered regions.',
+    meta: 'All inputs · recommended first run',
+    primaryAsset: 'sample_satellite_port.jpg',
+    secondAsset: 'sample_satellite_port_t2_synthetic.jpg',
+    sarAsset: 'sample_sentinel1_sar_mauritius.jpg',
+  },
+  {
     id: 'demo-vqa',
     title: 'Port Question Answering',
     mode: 'VQA',
@@ -46,10 +56,10 @@ const DEMO_PRESETS: DemoPreset[] = [
   },
   {
     id: 'demo-sar',
-    title: 'Optical + SAR Radiometric Synergy',
+    title: 'Optical + SAR Image Statistics',
     mode: 'OPTICAL_SAR',
     query: 'Analyze optical and SAR radar cross-modal backscatter imagery',
-    meta: 'Dual-Stream · <0.5s',
+    meta: 'Intensity Overlay · <0.5s',
     primaryAsset: 'sample_satellite_port.jpg',
     sarAsset: 'sample_sentinel1_sar_mauritius.jpg',
   },
@@ -64,6 +74,7 @@ export const AnalysisPage: React.FC = () => {
     setSecondImage,
     setSarImage,
     setParameter,
+    setInputOptions,
     resetInputs,
     loadPreset,
     loading,
@@ -93,9 +104,39 @@ export const AnalysisPage: React.FC = () => {
 
   const isChange = state.taskMode === 'CHANGE_DETECTION' || state.taskMode === 'AUTO';
   const isSar = state.taskMode === 'OPTICAL_SAR' || state.taskMode === 'AUTO';
+  const inputChecks = [
+    { label: 'Primary image', ok: Boolean(state.primaryImage || state.primaryPreview), required: true },
+    ...(isChange ? [{ label: 'Second date / T2 image', ok: Boolean(state.secondImage || state.secondPreview), required: true }] : []),
+    ...(isSar ? [{ label: 'SAR image', ok: Boolean(state.sarImage || state.sarPreview), required: true }] : []),
+  ];
+  const modeLabels: Record<TaskMode, string> = {
+    AUTO: 'Agent router',
+    VQA: 'Visual Q&A',
+    GROUNDING: 'Find regions',
+    CHANGE_DETECTION: 'Compare dates',
+    OPTICAL_SAR: 'Optical + SAR',
+  };
+  const modeDescriptions: Record<TaskMode, string> = {
+    AUTO: 'SatQuery selects the specialist workflow from your question and inputs.',
+    VQA: 'Ask a question about one remote-sensing image.',
+    GROUNDING: 'Locate a named object or region and return spatial evidence.',
+    CHANGE_DETECTION: 'Compare two aligned observations and explain the change.',
+    OPTICAL_SAR: 'Join optical context with co-located radar evidence.',
+  };
 
   return (
     <div className="workspace-page">
+      <div className="workspace-intro">
+        <div>
+          <span className="workspace-eyebrow">REMOTE-SENSING ANALYSIS</span>
+          <h1>Ask your satellite data a question.</h1>
+          <p>{modeDescriptions[state.taskMode]}</p>
+        </div>
+        <div className="workspace-intro-hint">
+          <span className="intro-hint-dot" />
+          <span>Evidence-first results with an auditable execution trace</span>
+        </div>
+      </div>
       {/* Active Validation or Clarification Banner */}
       {error && (
         <ErrorBanner
@@ -111,7 +152,7 @@ export const AnalysisPage: React.FC = () => {
       {/* Top Segmented Task Selector */}
       <div className="workspace-task-bar">
         <div className="task-segmented-group">
-          {(['AUTO', 'VQA', 'GROUNDING', 'CHANGE_DETECTION', 'OPTICAL_SAR'] as TaskMode[]).map((mode) => (
+              {(['AUTO', 'VQA', 'GROUNDING', 'CHANGE_DETECTION', 'OPTICAL_SAR'] as TaskMode[]).map((mode) => (
             <button
               key={mode}
               type="button"
@@ -119,7 +160,7 @@ export const AnalysisPage: React.FC = () => {
               onClick={() => setTaskMode(mode)}
               disabled={loading}
             >
-              {mode.replace('_', ' ')}
+              {modeLabels[mode]}
             </button>
           ))}
         </div>
@@ -134,7 +175,7 @@ export const AnalysisPage: React.FC = () => {
         {/* COLUMN 1: Ingestion & Presets (Left Rail) */}
         <div className="workstation-rail-left">
           <div className="rail-section-header">
-            <span>INPUT RASTER SOURCES</span>
+            <span><b className="section-step-number">01</b> INPUT SOURCES</span>
             <button
               type="button"
               style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '0.7rem', cursor: 'pointer' }}
@@ -172,7 +213,7 @@ export const AnalysisPage: React.FC = () => {
                   disabled={loading}
                 />
                 <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                  Evaluated on controlled synthetic pair (LEVIR-CD slice).
+                  Alignment must be verified; equal dimensions alone are insufficient.
                 </span>
               </div>
             )}
@@ -183,7 +224,7 @@ export const AnalysisPage: React.FC = () => {
                 <DropZone
                   label="Microwave SAR Channel"
                   sublabel="Radar backscatter intensity"
-                  badge="PROXY SAR"
+                  badge="SAR INPUT"
                   file={state.sarImage}
                   previewUrl={state.sarPreview}
                   onFileSelect={(f) => setSarImage(f)}
@@ -191,16 +232,19 @@ export const AnalysisPage: React.FC = () => {
                   disabled={loading}
                 />
                 <span style={{ fontSize: '0.68rem', color: 'var(--color-warning)' }}>
-                  DATA CLASSIFICATION: PROXY SAR
+                  SAR PROVENANCE: UNVERIFIED
                 </span>
               </div>
             )}
 
             {/* Standard Presets */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-              <span className="field-label-technical">VERIFIED BENCHMARK PRESETS</span>
+              <span className="field-label-technical">SAMPLE INPUT PRESETS</span>
+              <button type="button" className="complete-demo-btn" onClick={() => loadPreset(DEMO_PRESETS[0])} disabled={loading}>
+                <span>Load complete demo</span><span>3 inputs · routed automatically</span>
+              </button>
               <div className="preset-list-clean">
-                {DEMO_PRESETS.map((preset) => (
+                {DEMO_PRESETS.slice(1).map((preset) => (
                   <button
                     key={preset.id}
                     type="button"
@@ -224,7 +268,7 @@ export const AnalysisPage: React.FC = () => {
               primarySrc={state.primaryPreview}
               secondarySrc={state.secondPreview || state.sarPreview}
               mode={state.secondPreview || state.sarPreview ? 'side-by-side' : 'single'}
-              title={`${state.taskMode} · 512 × 512 GSD`}
+              title={`${state.taskMode} · Image Preview`}
             />
           ) : (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-3)', background: '#040608', color: 'var(--text-muted)' }}>
@@ -243,10 +287,28 @@ export const AnalysisPage: React.FC = () => {
         {/* COLUMN 3: Analysis Controls & Query Panel (Right) */}
         <div className="workstation-panel-right">
           <div className="rail-section-header">
-            <span>ANALYTICAL QUERY &amp; EXECUTION</span>
+            <span><b className="section-step-number">02</b> QUERY &amp; EXECUTION</span>
           </div>
 
           <form onSubmit={handleSubmit} className="query-form-block">
+            <label style={{ display: 'block', marginBottom: 12 }}>
+              <input type="checkbox" checked={state.evaluationMode ?? false} onChange={e => setInputOptions({ evaluationMode: e.target.checked })} />
+              {' '}Evaluation mode — require verified benchmark images or matching geographic grids
+            </label>
+            <details style={{ marginBottom: 12 }}>
+              <summary>Satellite image bands and source information</summary>
+              <p>For multispectral TIFFs, enter the red, green and blue band positions (starting at 1). SAR previews use the first band unless you select another. Source information is recorded as user supplied.</p>
+              {(['image_path', 'second_image_path', 'sar_image_path'] as const).map((key, index) => (
+                <div key={key} style={{ margin: '8px 0' }}>
+                  <label>{['Primary image', 'Second date', 'SAR image'][index]} source / sensor{' '}
+                    <input type="text" value={state.inputMetadata?.[key]?.sensor ?? ''} onChange={e => setInputOptions({ inputMetadata: { ...state.inputMetadata, [key]: { ...state.inputMetadata?.[key], sensor: e.target.value } } })} />
+                  </label>
+                  <label>{' '}Band positions{' '}
+                    <input type="text" placeholder={index === 2 ? '1,1,1' : '3,2,1'} pattern="[1-9][0-9]*,[1-9][0-9]*,[1-9][0-9]*" onChange={e => setInputOptions({ inputMetadata: { ...state.inputMetadata, [key]: { ...state.inputMetadata?.[key], rgb_bands: e.target.value ? e.target.value.split(',').map(x => Number(x) - 1) : undefined } } })} />
+                  </label>
+                </div>
+              ))}
+            </details>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label htmlFor="technical-query-input" className="field-label-technical">
                 Query Specification
@@ -259,6 +321,10 @@ export const AnalysisPage: React.FC = () => {
                 onChange={(e) => setQuery(e.target.value)}
                 disabled={loading}
               />
+              <div className="query-helper-row">
+                <span>{state.query.length}/500 characters</span>
+                <span>{state.query.trim() ? 'Ready to route' : 'Add a question to continue'}</span>
+              </div>
             </div>
 
             {/* Compact Suggested Query Chips */}
@@ -324,6 +390,11 @@ export const AnalysisPage: React.FC = () => {
                   />
                 </div>
               )}
+            </div>
+
+            <div className="input-readiness-card" aria-live="polite">
+              <div className="input-readiness-header"><span>INPUT READINESS</span><span>{inputChecks.filter((item) => item.ok).length}/{inputChecks.length}</span></div>
+              {inputChecks.map((item) => <div className="input-check-row" key={item.label}><span className={item.ok ? 'check-ok' : 'check-missing'}>{item.ok ? '✓' : '○'}</span><span>{item.label}</span><span>{item.ok ? 'Ready' : 'Required'}</span></div>)}
             </div>
 
             {/* Run Analysis Action */}

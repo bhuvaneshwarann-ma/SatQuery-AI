@@ -10,6 +10,7 @@ Verifies:
 """
 
 import os
+import tempfile
 import sys
 import unittest
 import numpy as np
@@ -28,7 +29,9 @@ from backend.app.services.geospatial_service import (
 class TestGeospatialValidation(unittest.TestCase):
 
     def setUp(self):
-        self.tmp_dir = "training/data/tmp_test_geo"
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.tmp_dir = self.tmp.name
         os.makedirs(self.tmp_dir, exist_ok=True)
         self.sample_port = "data/samples/sample_satellite_port.jpg"
         self.sample_t2 = "data/samples/sample_satellite_port_t2_synthetic.jpg"
@@ -101,9 +104,9 @@ class TestGeospatialValidation(unittest.TestCase):
             self.sample_t2,
             task_name="CHANGE_DETECTION"
         )
-        self.assertEqual(compat["status"], "COMPATIBLE")
-        self.assertTrue(compat["co_registered"])
-        self.assertEqual(compat["spatial_overlap_percentage"], 100.0)
+        self.assertEqual(compat["status"], "PIXEL_DIMENSIONS_MATCH")
+        self.assertIsNone(compat["co_registered"])
+        self.assertIsNone(compat["spatial_overlap_percentage"])
 
     # Test 4: Incompatible Spatial Dimensions Rejection
     def test_04_dimension_mismatch_rejection(self):

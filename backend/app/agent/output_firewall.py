@@ -139,7 +139,7 @@ class OutputFirewall:
 
         if "CHANGE_DETECTION" in tools_used:
             limitations.append(
-                "Detected change using unsupervised feature differencing (calibrated tau=0.30). Results may contain illumination or seasonal false positives."
+                "Detected change using unsupervised feature differencing at the recorded threshold. Results may contain illumination or seasonal false positives."
             )
 
         if "GROUNDING" in tools_used and not is_counting_query:
@@ -154,7 +154,7 @@ class OutputFirewall:
 
         if "VQA" in tools_used and not is_counting_query and "CHANGE_DETECTION" not in tools_used:
             limitations.append(
-                "VLM confidence represents model-derived uncalibrated heuristic; not a calibrated probability of factual correctness."
+                "VQA confidence is unavailable. Narrative-derived feature descriptions are not independent verification."
             )
 
         return limitations

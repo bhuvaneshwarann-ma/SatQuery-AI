@@ -10,6 +10,8 @@ Enforces:
 """
 
 import os
+import math
+import random
 import sys
 import time
 import yaml
@@ -68,6 +70,10 @@ def train_vqa_lora(config_path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any]:
     train_cfg = cfg.get("training", {})
     data_cfg = cfg.get("data", {})
 
+    if os.path.exists(os.path.join(output_dir, "adapter_config.json")):
+        raise FileExistsError("Choose a new output directory; existing adapters are never overwritten")
+    random.seed(int(train_cfg.get("seed", 42)))
+    torch.manual_seed(int(train_cfg.get("seed", 42)))
     os.makedirs(output_dir, exist_ok=True)
 
     print("=" * 70)
@@ -149,7 +155,7 @@ def train_vqa_lora(config_path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any]:
         weight_decay=float(train_cfg.get("weight_decay", 0.01)),
     )
 
-    total_steps = (len(dataloader) // grad_accum_steps) * epochs
+    total_steps = math.ceil(len(dataloader) / grad_accum_steps) * epochs
     warmup_steps = max(1, int(total_steps * float(train_cfg.get("warmup_ratio", 0.05))))
     scheduler = get_linear_schedule_with_warmup(optimizer, warmup_steps, max(1, total_steps))
 
@@ -165,16 +171,22 @@ def train_vqa_lora(config_path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any]:
         epoch_loss = 0.0
         for i, batch in enumerate(dataloader):
             img_path = batch["image"][0]
+            second_img_path = batch.get("second_image", [None])[0]
             question = batch["question"][0]
             answer = batch["answer"][0]
 
             messages = [
                 {
                     "role": "user",
-                    "content": [
+                    "content": ([
+                        {"type": "text", "text": "Image 1 is Sentinel-2 multispectral context; image 2 is Sentinel-1 SAR context."},
+                        {"type": "image", "image": img_path},
+                        {"type": "image", "image": second_img_path},
+                        {"type": "text", "text": question.strip()},
+                    ] if second_img_path else [
                         {"type": "image", "image": img_path},
                         {"type": "text", "text": question.strip()},
-                    ],
+                    ]),
                 },
                 {
                     "role": "assistant",
@@ -195,12 +207,22 @@ def train_vqa_lora(config_path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any]:
             inputs = inputs.to(model.device)
 
             labels = inputs["input_ids"].clone()
-            # Mask user tokens so loss is computed solely on the assistant answer
+            prompt_text = processor.apply_chat_template(messages[:1], tokenize=False, add_generation_prompt=True)
+            prompt = processor(text=[prompt_text], images=image_inputs, videos=video_inputs,
+                               padding=True, return_tensors="pt")
+            prompt_len = prompt["input_ids"].shape[1]
+            if not torch.equal(inputs["input_ids"][0, :prompt_len].cpu(), prompt["input_ids"][0]):
+                raise ValueError("Conversation prefix differs from user prompt; refusing incorrect masking")
+            labels[:, :prompt_len] = -100
+            labels[inputs["attention_mask"] == 0] = -100
+            if not (labels != -100).any():
+                raise ValueError("Training example has no supervised answer tokens")
             outputs = model(**inputs, labels=labels)
-            loss = outputs.loss / grad_accum_steps
+            group_size = min(grad_accum_steps, len(dataloader) - (i // grad_accum_steps) * grad_accum_steps)
+            loss = outputs.loss / group_size
             loss.backward()
 
-            epoch_loss += loss.item() * grad_accum_steps
+            epoch_loss += loss.item() * group_size
 
             if (i + 1) % grad_accum_steps == 0 or (i + 1) == len(dataloader):
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -208,7 +230,7 @@ def train_vqa_lora(config_path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any]:
                 scheduler.step()
                 optimizer.zero_grad()
                 step_count += 1
-                curr_loss = round(loss.item() * grad_accum_steps, 4)
+                curr_loss = round(loss.item() * group_size, 4)
                 step_loss_log.append({"step": step_count, "loss": curr_loss})
                 print(f"  [Epoch {epoch+1}/{epochs}] Step {step_count}/{max(1, total_steps)} | Loss: {curr_loss:.4f} | LR: {scheduler.get_last_lr()[0]:.2e}")
 
@@ -221,6 +243,8 @@ def train_vqa_lora(config_path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any]:
 
     training_metadata = {
         "status": "COMPLETED",
+        "loss_scope": "assistant_tokens_only",
+        "seed": int(train_cfg.get("seed", 42)),
         "model_id": model_id,
         "adapter_dir": output_dir,
         "epochs": epochs,
@@ -250,4 +274,7 @@ def train_vqa_lora(config_path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-    train_vqa_lora()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default=DEFAULT_CONFIG_PATH)
+    train_vqa_lora(parser.parse_args().config)

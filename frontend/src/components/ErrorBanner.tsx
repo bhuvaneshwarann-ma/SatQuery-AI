@@ -53,11 +53,14 @@ export const ErrorBanner: React.FC<ErrorBannerProps> = ({
       )}
 
       {validationErrors && validationErrors.length > 0 && (
-        <ul className="validation-error-list">
+        <div className="validation-details">
+          <span className="validation-details-title">Fix these inputs before running again</span>
+          <ul className="validation-error-list">
           {validationErrors.map((err, idx) => (
             <li key={idx}>{err}</li>
           ))}
-        </ul>
+          </ul>
+        </div>
       )}
     </div>
   );

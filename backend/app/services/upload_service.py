@@ -1,76 +1,61 @@
-"""
-SatQuery AI — File Upload & Asset Staging Service (Phase 7A)
-Provides secure, collision-free local storage for multipart satellite image uploads.
-Validates file extensions, inspects image binary integrity, and rejects unsupported or executable formats.
-"""
-
-import os
-import uuid
-import shutil
-from typing import Optional
-from fastapi import UploadFile
+"""Bounded staging and confinement to approved local image directories."""
+from pathlib import Path
+from uuid import uuid4
 from PIL import Image
-
+from fastapi import UploadFile
+from ..config import UPLOAD_DIR, SAMPLE_DIR, PROJECT_ROOT, MAX_UPLOAD_BYTES, MAX_IMAGE_PIXELS
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
-UPLOAD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../data/uploads"))
 
+def validate_image(path: Path) -> None:
+    if path.suffix.lower() not in ALLOWED_EXTENSIONS or not path.is_file():
+        raise ValueError("Expected a supported image file.")
+    if path.stat().st_size > MAX_UPLOAD_BYTES:
+        raise ValueError("Image exceeds the 20 MiB limit.")
+    if path.suffix.lower() in {".tif", ".tiff"}:
+        from .raster_input_service import read_raster
+        read_raster(path)
+        return
+    with Image.open(path) as img:
+        if img.width * img.height > MAX_IMAGE_PIXELS:
+            raise ValueError("Image exceeds the 4 million pixel limit; crop or tile it first.")
+        img.verify()
 
-def ensure_upload_dir() -> str:
-    """Ensures local uploads directory exists."""
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    return UPLOAD_DIR
-
+def resolve_sample_path(value: str | None) -> str | None:
+    if not value:
+        return None
+    path = Path(value)
+    path = (PROJECT_ROOT / path).resolve() if not path.is_absolute() else path.resolve()
+    if not path.is_relative_to(SAMPLE_DIR.resolve()):
+        raise ValueError("Direct paths are restricted to bundled data/samples images. Upload other images.")
+    try:
+        validate_image(path)
+    except Exception as exc:
+        raise ValueError(f"Invalid sample image: {exc}") from exc
+    return str(path)
 
 def save_upload_file(upload_file: UploadFile) -> str:
-    """
-    Saves an uploaded file to a collision-safe local path after security & format validation.
-
-    Args:
-        upload_file: FastAPI UploadFile instance.
-
-    Returns:
-        Absolute path to the validated saved image on disk.
-
-    Raises:
-        ValueError: If file extension is unsupported or binary data cannot be verified as an image.
-    """
-    ensure_upload_dir()
-
-    filename = upload_file.filename or "upload.jpg"
-    _, ext = os.path.splitext(filename.lower())
-
-    if ext not in ALLOWED_EXTENSIONS:
-        raise ValueError(
-            f"Unsupported file extension '{ext}'. Allowed image extensions: {sorted(list(ALLOWED_EXTENSIONS))}"
-        )
-
-    # Generate collision-safe filename preserving sanitized original base stem
-    stem, ext = os.path.splitext(filename.lower())
-    clean_stem = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in stem)[:32]
-    safe_filename = f"{clean_stem}_{uuid.uuid4().hex[:12]}{ext}"
-    target_path = os.path.join(UPLOAD_DIR, safe_filename)
-
-    # Save to disk
-    with open(target_path, "wb") as buffer:
-        shutil.copyfileobj(upload_file.file, buffer)
-
-    # Verify binary image integrity using Pillow
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    name = Path(upload_file.filename or "upload.jpg")
+    if name.suffix.lower() not in ALLOWED_EXTENSIONS:
+        raise ValueError("Unsupported file extension.")
+    path = UPLOAD_DIR / f"{uuid4().hex}{name.suffix.lower()}"
     try:
-        with Image.open(target_path) as img:
-            img.verify()
-    except Exception as err:
-        if os.path.exists(target_path):
-            os.remove(target_path)
-        raise ValueError(f"Uploaded file is corrupted or not a valid raster image: {err}")
+        size = 0
+        with path.open("wb") as out:
+            while chunk := upload_file.file.read(1024 * 1024):
+                size += len(chunk)
+                if size > MAX_UPLOAD_BYTES:
+                    raise ValueError("Image exceeds the 20 MiB limit.")
+                out.write(chunk)
+        validate_image(path)
+        return str(path)
+    except Exception as exc:
+        path.unlink(missing_ok=True)
+        raise ValueError(f"Invalid image upload: {exc}") from exc
 
-    return target_path
-
-
-def cleanup_file(file_path: Optional[str]) -> None:
-    """Safely removes a temporary file from disk if present."""
-    if file_path and os.path.exists(file_path):
-        try:
-            os.remove(file_path)
-        except OSError:
-            pass
+def cleanup_file(file_path: str | None) -> None:
+    if file_path:
+        path = Path(file_path).resolve()
+        if path.is_relative_to(UPLOAD_DIR.resolve()):
+            path.unlink(missing_ok=True)

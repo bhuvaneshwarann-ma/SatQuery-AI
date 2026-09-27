@@ -1,0 +1,22 @@
+{
+  "vrsbench": {
+    "status": "BLOCKED",
+    "reason": "Missing manifest: data/benchmarks/vrsbench/manifest.json"
+  },
+  "rsvqa": {
+    "status": "BLOCKED",
+    "reason": "Runtime dependency unavailable: PIL"
+  },
+  "cdvqa": {
+    "status": "BLOCKED",
+    "reason": "Missing manifest: data/benchmarks/cdvqa/manifest.json"
+  },
+  "sen1_2": {
+    "status": "BLOCKED",
+    "reason": "Missing manifest: data/benchmarks/sen1_2/manifest.json"
+  },
+  "isro": {
+    "status": "BLOCKED",
+    "reason": "Missing manifest: data/benchmarks/isro/manifest.json"
+  }
+}

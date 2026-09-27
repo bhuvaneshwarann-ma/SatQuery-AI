@@ -42,13 +42,13 @@ class AgentRouter:
 
     # Grounding intents: Locational, pointing, bounding, detection requests
     GROUNDING_PATTERNS = [
-        r"\b(locate|find|detect|where\s+is|where\s+are|point\s+out|bounding\s+box|box\s+the|coordinates\s+of)\b",
+        r"\b(highlight|outline|locate|find|detect|where\s+is|where\s+are|point\s+out|bounding\s+box|box\s+the|coordinates\s+of)\b",
         r"\b(show\s+me\s+the\s+location|pinpoint)\b",
     ]
 
     # Change detection intents: Temporal, delta, differential, before/after
     CHANGE_PATTERNS = [
-        r"\b(changes?|changed|difference|differences|diff|between\s+(these\s+)?(two\s+)?(images|dates))\b",
+        r"\b(increased|decreased|unchanged|changes?|changed|difference|differences|diff|between\s+(these\s+)?(two\s+)?(images|dates))\b",
         r"\b(between\s+t1\s+and\s+t2|before\s+and\s+after|new\s+construction|demolished|deforestation)\b",
         r"\b(what\s+changed|identify\s+(new|changes?)|expansion|loss|gain|compare\s+(these\s+)?(two\s+)?(images|dates))\b",
     ]
@@ -91,6 +91,8 @@ class AgentRouter:
             return "runway"
         if "road" in clean or "highway" in clean:
             return "roads"
+        if "water" in clean or "river" in clean or "lake" in clean:
+            return "water"
         if "forest" in clean or "tree" in clean or "vegetation" in clean:
             return "vegetation"
         return None
@@ -122,8 +124,9 @@ class AgentRouter:
         has_loc = bool(re.search(r"\b(where|locate|built[- ]?up|buildings?|target)\b", clean_query))
         has_desc = bool(re.search(r"\b(describe|what\s+changed|explain|summary)\b", clean_query))
 
-        if is_compound or (has_temporal and has_loc and has_desc):
-            target = cls.extract_target_entity(clean_query) or "built_up_area"
+        if (is_compound or (has_temporal and has_loc and has_desc) or
+                re.search(r"\b(increased|decreased|unchanged)\b", clean_query)) and not request.sar_image_path:
+            target = cls.extract_target_entity(clean_query)
             plan = StructuredTaskPlan(
                 intent="CHANGE_ANALYSIS",
                 target=target,
@@ -138,13 +141,13 @@ class AgentRouter:
                     ),
                     TaskPlanStep(
                         tool="GROUNDING",
-                        purpose=f"localize target '{target}' in the scene",
+                        purpose=f"localize target '{target}' in the scene" if target else "localize only the entities named by the query",
                         required_inputs=["image_path"],
                     ),
                     TaskPlanStep(
                         tool="VQA",
-                        purpose="describe the observed change across identified regions",
-                        required_inputs=["image_path"],
+                        purpose="compare both observations and describe changes using spatial evidence",
+                        required_inputs=["image_path", "second_image_path"],
                     ),
                 ]
             )
@@ -177,14 +180,12 @@ class AgentRouter:
                 plan = StructuredTaskPlan(
                     intent="OPTICAL_SAR_ANALYSIS",
                     requires_temporal_pair=False,
-                    requires_spatial_evidence=False,
-                    is_multi_tool=False,
+                    requires_spatial_evidence=True,
+                    is_multi_tool=True,
                     plan=[
-                        TaskPlanStep(
-                            tool="OPTICAL_SAR",
-                            purpose="correlate optical reflectance with SAR microwave radar backscatter",
-                            required_inputs=["optical_image_path", "sar_image_path"],
-                        )
+                        TaskPlanStep(tool="OPTICAL_SAR", purpose="measure optical and SAR display evidence", required_inputs=["optical_image_path", "sar_image_path"]),
+                        TaskPlanStep(tool="GROUNDING", purpose="localize candidate buildings and water in optical imagery", required_inputs=["image_path"]),
+                        TaskPlanStep(tool="VQA", purpose="jointly interpret the optical and SAR observations with region measurements", required_inputs=["image_path", "sar_image_path"]),
                     ]
                 )
                 return plan, "Query contains multi-sensor radar / optical-SAR keywords."
@@ -258,6 +259,9 @@ class AgentRouter:
         5. Emission of verified ToolSelection contract
         """
         # Step 1: Explicit Task Request Handling
+        counting = any(re.search(p, request.query.lower()) for p in cls.COUNT_PATTERNS)
+        if counting and (not request.task or request.task.upper() in {"VQA", "GROUNDING"}):
+            request = __import__("dataclasses").replace(request, task=None)
         if request.task:
             normalized_task_name = request.task.strip().upper()
             if not is_tool_registered(normalized_task_name):
@@ -331,6 +335,10 @@ class AgentRouter:
         sanitized_params_per_step: Dict[str, Any] = {}
         all_required_inputs: List[str] = []
 
+        allowed = {key for step in plan.plan for key in get_tool(step.tool).permitted_parameters}
+        unknown = set(request.parameters) - allowed
+        validation_errors.extend(f"Ignored unpermitted parameter {key!r}." for key in sorted(unknown))
+
         for step in plan.plan:
             tool_name = step.tool
             tool_def = get_tool(tool_name)
@@ -341,9 +349,9 @@ class AgentRouter:
             all_required_inputs.extend(tool_def.required_inputs)
 
             # Check required inputs
-            if tool_name == "VQA" and not request.image_path:
+            if tool_name == "VQA" and not (request.image_path or (plan.intent == "OPTICAL_SAR_ANALYSIS" and request.optical_image_path)):
                 validation_errors.append("VQA requires a valid 'image_path'.")
-            elif tool_name == "GROUNDING" and not request.image_path:
+            elif tool_name == "GROUNDING" and not (request.image_path or (plan.intent == "OPTICAL_SAR_ANALYSIS" and request.optical_image_path)):
                 validation_errors.append("Grounding requires a valid 'image_path' to localize objects.")
             elif tool_name == "CHANGE_DETECTION":
                 if not request.image_path:
@@ -358,10 +366,21 @@ class AgentRouter:
                     validation_errors.append("Optical-SAR analysis requires a SAR radar image ('sar_image_path').")
 
             # Validate parameters through firewall
-            step_params, param_warnings = validate_and_filter_parameters(tool_name, request.parameters)
+            step_params, param_warnings = validate_and_filter_parameters(tool_name, {k: v for k, v in request.parameters.items() if k in tool_def.permitted_parameters})
             step.parameters = step_params
             sanitized_params_per_step.update(step_params)
             validation_errors.extend(param_warnings)
+
+        # The execution order is part of the observable contract. Keep the
+        # evidence-producing stages deterministic and reject duplicate or
+        # unsupported specialist steps before any model is loaded.
+        sequence = [step.tool for step in plan.plan]
+        if len(sequence) != len(set(sequence)):
+            validation_errors.append("A specialist may occur only once in a task plan.")
+        if plan.intent == "CHANGE_ANALYSIS" and sequence != ["CHANGE_DETECTION", "GROUNDING", "VQA"]:
+            validation_errors.append("Temporal evidence must execute CHANGE_DETECTION -> GROUNDING -> VQA.")
+        if plan.intent == "OPTICAL_SAR_ANALYSIS" and sequence != ["OPTICAL_SAR", "GROUNDING", "VQA"]:
+            validation_errors.append("Cross-modal evidence must execute OPTICAL_SAR -> GROUNDING -> VQA.")
 
         all_required_inputs = list(dict.fromkeys(all_required_inputs))
 

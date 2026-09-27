@@ -5,6 +5,7 @@ Enforces on-demand loading, input validation, structured output telemetry, and s
 """
 
 import os
+from backend.app.services.artifact_service import new_artifact_path
 import time
 import gc
 import traceback
@@ -160,11 +161,16 @@ def run_grounding(
         )
 
         det = processed[0]
-        raw_scores = det["scores"].detach().cpu().tolist()
-        raw_boxes = det["boxes"].detach().cpu().tolist()
-
-        scores = [round(float(s), 4) for s in raw_scores]
-        boxes = [[round(float(c), 2) for c in box] for box in raw_boxes]
+        from torchvision.ops import nms
+        raw_boxes, raw_scores = det["boxes"], det["scores"]
+        raw_boxes[:, [0, 2]] = raw_boxes[:, [0, 2]].clamp(0, img_w)
+        raw_boxes[:, [1, 3]] = raw_boxes[:, [1, 3]].clamp(0, img_h)
+        valid = torch.isfinite(raw_boxes).all(dim=1) & torch.isfinite(raw_scores)
+        valid &= (raw_boxes[:, 2] > raw_boxes[:, 0]) & (raw_boxes[:, 3] > raw_boxes[:, 1])
+        raw_boxes, raw_scores = raw_boxes[valid], raw_scores[valid]
+        keep = nms(raw_boxes, raw_scores, 0.5)
+        scores = [round(float(v), 4) for v in raw_scores[keep].cpu().tolist()]
+        boxes = [[round(float(c), 2) for c in box] for box in raw_boxes[keep].cpu().tolist()]
         num_detections = len(scores)
 
         latency_ms = round((time.perf_counter() - t_start) * 1000, 2)
@@ -180,9 +186,7 @@ def run_grounding(
         annotated_artifact_path = None
         if num_detections > 0:
             try:
-                out_dir = os.path.join("docs", "results")
-                os.makedirs(out_dir, exist_ok=True)
-                annotated_artifact_path = os.path.join(out_dir, "grounding_execution_artifact.jpg")
+                annotated_artifact_path = new_artifact_path("grounding")
                 annotated = raw_image.copy()
                 draw = ImageDraw.Draw(annotated)
                 for box, score in zip(boxes, scores):

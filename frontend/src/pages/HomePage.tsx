@@ -109,9 +109,9 @@ export const HomePage: React.FC = () => {
               </td>
             </tr>
             <tr>
-              <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Optical + SAR Fusion</td>
+              <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Optical + SAR Statistics</td>
               <td>Cross-modal optical reflectance and radar backscatter correlation</td>
-              <td><code>Dual-Stream Multi-Sensor Engine</code></td>
+              <td><code>Display-Intensity Statistics</code></td>
               <td><span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>&lt;0.5s</span></td>
               <td>
                 <span className="matrix-action-link" onClick={() => handleLaunchTask('OPTICAL_SAR')}>
@@ -139,7 +139,7 @@ export const HomePage: React.FC = () => {
             02 · EVIDENCE-BASED HEURISTICS
           </div>
           <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-            Confidence levels (LOW / MEDIUM / HIGH) represent uncalibrated evidence strength heuristics calculated across five visual signals. Hard uncertainty ceilings prevent overconfidence on ambiguous imagery.
+            Detector scores are uncalibrated. VQA confidence is unavailable; change area and optical/SAR correlation are descriptive statistics, not accuracy estimates.
           </p>
         </div>
 

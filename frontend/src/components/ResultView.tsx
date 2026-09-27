@@ -29,13 +29,10 @@ export const ResultView: React.FC<ResultViewProps> = ({
   // Check for domain evaluation notices
   const isProxySar =
     evidence.sar_data_classification === 'proxy_sar' ||
-    metadata.sar_data_classification === 'proxy_sar' ||
-    result.selected_tool === 'OPTICAL_SAR';
+    metadata.sar_data_classification === 'proxy_sar';
 
   const isSyntheticChange =
-    result.selected_tool === 'CHANGE_DETECTION' ||
-    evidence.dataset_note ||
-    metadata.data_classification;
+    metadata.data_classification === 'controlled_synthetic';
 
   // Render confidence block with strict semantic labeling
   const renderConfidenceBlock = () => {
@@ -43,6 +40,8 @@ export const ResultView: React.FC<ResultViewProps> = ({
     const confLevel = isObjectConf ? (result.confidence as any).level : null;
     const confScore = isObjectConf ? (result.confidence as any).score : (typeof result.confidence === 'number' ? result.confidence : null);
     const confExplanation = isObjectConf ? (result.confidence as any).explanation : null;
+
+    if (isObjectConf && confScore == null) return <p>{confExplanation || 'Confidence unavailable.'}</p>;
 
     if (isObjectConf && confLevel) {
       const levelClass = confLevel.toLowerCase();
@@ -63,7 +62,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
               <span className="confidence-extra"> (Area stability: {(confScore * 100).toFixed(1)}%)</span>
             )}
             {result.selected_tool === 'OPTICAL_SAR' && (
-              <span className="confidence-extra"> (Pipeline integrity: 100%)</span>
+              <span className="confidence-extra"> (Descriptive image statistics)</span>
             )}
           </div>
           {confExplanation && (
@@ -96,7 +95,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
       <div className="confidence-metric-block confidence-level-low">
         <div className="confidence-badge-row">
           <span className="confidence-label">Evidence Strength:</span>
-          <span className="confidence-badge badge-low">LOW</span>
+          <span className="confidence-badge badge-low">UNAVAILABLE</span>
         </div>
         <div className="confidence-subline">
           <span className="confidence-type-label">Model-derived • Uncalibrated</span>
@@ -195,7 +194,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
         <div className="notice-item notice-roadmap">
           <span className="notice-badge roadmap-badge">REQUIREMENT #5: PARTIAL / OPEN</span>
           <span>
-            Evaluated open-source domain-adapted remote-sensing VLM checkpoint zero-shot on RSVQA-LR (35.0% EM). Custom team-owned fine-tuning on Indian EO data is an active roadmap milestone.
+            See Evaluation for the completed controlled comparison. Small datasets do not establish broad accuracy.
           </span>
         </div>
       </div>

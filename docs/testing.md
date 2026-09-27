@@ -1,55 +1,48 @@
-# Testing & Quality Assurance Plan — SatQuery AI
+# Testing
 
-## 1. Document Overview
-This document specifies the testing strategy, test levels, validation scenarios, and acceptance verification procedures for **SatQuery AI**.
+Run the fast suite from the repository root:
 
----
+```powershell
+.venv\Scripts\python.exe -m unittest discover -s backend/tests -p "test_*.py"
+```
 
-## 2. Testing Levels & Strategy
+Three model integration cases are skipped unless SATQUERY_MODEL_TESTS=1. Fast tests cover routing, counting, stage failures, evidence fields, threshold telemetry, immutable artifact naming, geospatial shifts, unknown alignment, upload limits, cleanup, queue capacity, path confinement, and trace serialization. Specialists are mocked only where model execution is not the subject of the test. A small real optical/SAR statistics test requires no downloaded weights.
 
-### 2.1 Unit Testing
-* **Input Validator**: Test rejection of corrupt files, unsupported formats, invalid dimensions, and missing channels.
-* **Agentic Router**: Verify deterministic classification across benchmark query prompts for each capability.
-* **Coordinate & Evidence Transformer**: Validate conversion of normalized coordinates into display bounding boxes and image masks.
-* **Confidence Estimator**: Validate range and calibration of output confidence scores ($0.0 \le c \le 1.0$).
+Run npm run build and npm run lint from frontend. Lint warnings are reported separately from errors. Tests do not establish scientific model accuracy. The controlled VQA comparison is a separate experiment using a completed corrected adapter.
+## SIH representative demonstrations
 
-### 2.2 Integration Testing
-* **End-to-End Query Pipeline**: Submit query and asset -> verify correct tool dispatch -> assert valid answer, visual evidence, and execution trace.
-* **Multi-Asset Pairing**: Test bi-temporal ($T_1, T_2$) and optical-SAR multi-image workflows.
-* **Error & Fallback Handling**: Verify that low-confidence queries or corrupt inputs return structured error responses rather than unhandled exceptions.
+Validate all five problem-statement examples without model loading:
 
-### 2.3 Model & Domain Verification
-* Test against standard benchmark sample tiles (e.g., port scenes, urban expansion, disaster zones).
-* Evaluate hallucination resistance when queried about non-existent objects or details beyond sensor resolution.
+```powershell
+.venv\Scripts\python.exe scripts\run_sih_demo.py
+```
 
-### 2.4 Performance & Latency Benchmarks
-* Single-image query response time target: $\le 5$ seconds.
-* Paired-image query response time target: $\le 10$ seconds.
-* GPU memory stability during continuous queries.
+Run the actual specialists when the local model environment is ready:
 
----
+```powershell
+.venv\Scripts\python.exe scripts\run_sih_demo.py --run-models
+```
 
-## 3. Test Cases Matrix
+The output records the selected tools, task plan, parameters and final result for each query. The model run is deliberately opt-in because a full sequence loads several large specialists.
 
-| Test ID | Category | Scenario | Expected Outcome |
-| :--- | :--- | :--- | :--- |
-| **TC-01** | Validation | Upload valid PNG/GeoTIFF | Asset ingested, dimensions returned, status `validated` |
-| **TC-02** | Validation | Upload corrupt/non-image file | HTTP 422 with clear diagnostic error |
-| **TC-03** | Validation | Bi-temporal query with single image | Rejected with `INVALID_IMAGE_PAIR` |
-| **TC-04** | Router | Query: *"Locate all vessels in the harbor"* | Routed to `rs_object_grounding` pipeline |
-| **TC-05** | Router | Query: *"What changes occurred between T1 and T2?"* | Routed to `bi_temporal_change` pipeline |
-| **TC-06** | Grounding | Object detection on port image | Returns valid coordinates + visual overlay |
-| **TC-07** | Change | Registered flood pair ($T_1, T_2$) | Highlights flooded areas + quantitative summary |
-| **TC-08** | Optical-SAR | Cloud-covered optical + SAR pair | Correctly extracts structure signatures from SAR |
-| **TC-09** | Observability| Any valid analytical query | Execution trace populated with latencies and stages |
-| **TC-10** | Safety | Query requesting invisible sub-pixel details | High uncertainty flag or disclaimer returned |
+## Prescribed benchmark workflow
 
----
+Prepare manifests from the official files supplied by the dataset owners:
 
-## 4. Evaluator Demonstration Verification Checklist
-- [ ] Test scenario 1: Single-image VQA on remote-sensing scene.
-- [ ] Test scenario 2: Single-image object grounding with visual bounding boxes.
-- [ ] Test scenario 3: Bi-temporal change detection with visual difference mask.
-- [ ] Test scenario 4: Optical-SAR cross-modal reasoning under cloud cover.
-- [ ] Test scenario 5: Input validation reject for invalid inputs.
-- [ ] Test scenario 6: Execution trace inspection and confidence verification.
+```powershell
+python scripts/prepare_prescribed_benchmarks.py --cdvqa-root <CDVQA_TEST_ROOT> --sen1-2-root <SEN1_2_ROOT> --isro-root <AUTHORISED_ISRO_ROOT>
+python scripts/run_prescribed_evaluations.py --include-blocked
+```
+
+The evaluator refuses to convert missing annotations into zero scores. CDVQA
+requires its answer and direction annotations, SEN1-2 requires reference
+regions for class metrics, and ISRO mode validates pair compatibility because
+the official judging annotations are hidden.
+
+Before submitting to SIH, run the release readiness check:
+
+```powershell
+python scripts\sih_release_check.py
+```
+
+It reports missing external manifests and the missing official judging table explicitly.

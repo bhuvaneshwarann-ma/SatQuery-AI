@@ -53,7 +53,11 @@ export interface StructuredTaskPlanInfo {
 }
 
 export interface AnalysisApiResponse {
-  status: 'SUCCESS' | 'ERROR' | 'INVALID_INPUT' | 'NEEDS_CLARIFICATION' | 'UNREGISTERED_TOOL';
+  tools_used?: string[];
+  limitations?: string[];
+  evidence_items?: Record<string, any>[];
+  execution_trace?: Record<string, any>[];
+  status: 'SUCCESS' | 'ERROR' | 'INVALID_INPUT' | 'NEEDS_CLARIFICATION' | 'UNREGISTERED_TOOL' | 'UNSUPPORTED_TASK';
   selected_tool: string | null;
   model: string;
   answer: string;
@@ -103,6 +107,8 @@ export interface ToolDefinitionModel {
 }
 
 export interface AnalyzePayload {
+  evaluation_mode?: boolean;
+  input_metadata?: Record<string, any>;
   query: string;
   image?: File | null;
   second_image?: File | null;
@@ -132,6 +138,8 @@ export async function fetchTools(): Promise<ToolDefinitionModel[]> {
 export async function analyzeRequest(payload: AnalyzePayload): Promise<AnalysisApiResponse> {
   const formData = new FormData();
   formData.append('query', payload.query);
+  formData.append('evaluation_mode', String(payload.evaluation_mode ?? false));
+  if (payload.input_metadata) formData.append('input_metadata', JSON.stringify(payload.input_metadata));
 
   if (payload.image) {
     formData.append('image', payload.image);
@@ -154,6 +162,9 @@ export async function analyzeRequest(payload: AnalyzePayload): Promise<AnalysisA
     body: formData,
   });
 
+  if (!resp.headers.get('content-type')?.includes('application/json')) {
+    throw new Error('The analysis service is unavailable. Run start-local.ps1 from the project folder, then retry.');
+  }
   const data = await resp.json();
   if (!resp.ok && !data.status) {
     throw new Error(data.detail || `Server returned error ${resp.status}`);

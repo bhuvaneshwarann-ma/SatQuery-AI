@@ -1,0 +1,16 @@
+{
+  "adaptation": {
+    "model": "AdaptLLM/remote-sensing-Qwen2.5-VL-3B-Instruct",
+    "adapter": "training/checkpoints/satquery_vqa_lora_corrected",
+    "training_data": "training/data/vqa_train.json",
+    "split_policy": "scene-grouped; no image path overlap between train and validation",
+    "status": "project adapter trained; large-scale BigEarthNet.txt fine-tuning requires separately provisioned paired imagery"
+  },
+  "prescribed_sources": {
+    "BigEarthNet.txt": {"url": "https://huggingface.co/datasets/BIFOLD-BigEarthNetv2-0/BigEarthNet.txt", "license": "CDLA-Permissive-1.0", "role": "multisensor adaptation and VQA/grounding annotations"},
+    "VRSBench": {"url": "https://github.com/lx709/VRSBench", "role": "captioning, grounding and VQA evaluation"},
+    "RSVQA-LR": {"url": "https://huggingface.co/datasets/dmarsili/RSVQA-LR-2k", "license": "CC-BY-4.0", "role": "single-image VQA evaluation"},
+    "CDVQA": {"url": "https://github.com/YZHJessica/CDVQA", "role": "bi-temporal change VQA evaluation"},
+    "SEN1-2": {"role": "registered Sentinel-1/Sentinel-2 optical-SAR engineering validation", "status": "manifest required before scoring"}
+  }
+}

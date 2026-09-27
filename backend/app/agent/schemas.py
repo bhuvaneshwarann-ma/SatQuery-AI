@@ -204,7 +204,7 @@ class OrchestrationResult:
             "visual_evidence": self.visual_evidence,
             "task_plan": self.task_plan,
             "execution_trace": trace,
-            "observable_execution_trace": trace,
+            "observable_execution_trace": self.observable_execution_trace,
             "limitations": self.limitations,
             "metadata": self.metadata,
             "latency_ms": self.latency_ms,

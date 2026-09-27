@@ -158,6 +158,7 @@ class TestEndToEndSatQuery(unittest.TestCase):
     # ---------------------------------------------------------
     # 5. SPECIALIST MODELS EXECUTION
     # ---------------------------------------------------------
+    @unittest.skipUnless(os.environ.get("SATQUERY_MODEL_TESTS") == "1", "Set SATQUERY_MODEL_TESTS=1 for model integration")
     def test_10_change_detection_execution(self):
         res = self.client.post(
             "/api/analyze",
@@ -176,6 +177,7 @@ class TestEndToEndSatQuery(unittest.TestCase):
         self.assertGreater(data["evidence"]["changed_pixels"], 0)
         self.assertIsNotNone(data["confidence"])
 
+    @unittest.skipUnless(os.environ.get("SATQUERY_MODEL_TESTS") == "1", "Set SATQUERY_MODEL_TESTS=1 for model integration")
     def test_11_optical_sar_execution(self):
         res = self.client.post(
             "/api/analyze",
@@ -189,9 +191,11 @@ class TestEndToEndSatQuery(unittest.TestCase):
         data = res.json()
         self.assertEqual(data["status"], "SUCCESS")
         self.assertEqual(data["selected_tool"], "OPTICAL_SAR")
-        self.assertIn("ablation_study", data["metadata"])
+        self.assertNotIn("ablation_study", data["metadata"])
+        self.assertIsNone(data["confidence"]["score"])
         self.assertEqual(data["metadata"]["sar_data_classification"], "proxy_sar")
 
+    @unittest.skipUnless(os.environ.get("SATQUERY_MODEL_TESTS") == "1", "Set SATQUERY_MODEL_TESTS=1 for model integration")
     def test_12_grounding_execution(self):
         res = self.client.post(
             "/api/analyze",

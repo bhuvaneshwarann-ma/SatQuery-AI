@@ -32,7 +32,14 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter((entry) => entry && entry.result && typeof entry.id === 'string').map((entry) => ({
+          ...entry,
+          primaryPreview: entry.primaryPreview?.startsWith('blob:') ? null : entry.primaryPreview,
+          secondPreview: entry.secondPreview?.startsWith('blob:') ? null : entry.secondPreview,
+          sarPreview: entry.sarPreview?.startsWith('blob:') ? null : entry.sarPreview,
+        }));
       }
     } catch (e) {
       console.warn('Failed to load analysis history from localStorage:', e);
@@ -54,7 +61,7 @@ export const HistoryProvider: React.FC<{ children: React.ReactNode }> = ({ child
       id: `hist-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       timestamp: new Date().toISOString(),
     };
-    setHistory((prev) => [newEntry, ...prev.slice(0, 49)]); // keep last 50 entries
+    setHistory((prev) => [newEntry, ...prev.slice(0, 19)]); // keep last 20 entries with bounded thumbnails
   }, []);
 
   const deleteHistoryEntry = useCallback((id: string) => {

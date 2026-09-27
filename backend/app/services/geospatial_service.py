@@ -107,7 +107,7 @@ def _extract_geotiff_metadata(file_path: str, meta: Dict[str, Any]):
                     if tag.code in [33550, 33922, 34264, 34735, 34736, 34737, 306, 50844]:
                         geotags[tag.code] = tag.value
 
-                if 34735 in geotags or 33922 in geotags or 33550 in geotags:
+                if any(key in geotags for key in [34735, 33922, 33550, 34264]):
                     meta["is_geotiff"] = True
                     _parse_geokeys(geotags, meta)
                 return
@@ -146,7 +146,7 @@ def _parse_geokeys(geotags: Dict[int, Any], meta: Dict[str, Any]):
         meta["pixel_resolution"] = {
             "x": float(scale[0]),
             "y": float(scale[1]),
-            "unit": "meters" if float(scale[0]) > 0.001 else "degrees"
+            "unit": "CRS units (not inferred)"
         }
 
     if tiepoint and scale and len(tiepoint) >= 6 and len(scale) >= 2:
@@ -166,6 +166,16 @@ def _parse_geokeys(geotags: Dict[int, Any], meta: Dict[str, Any]):
             "max_y": round(max_y, 6)
         }
         meta["affine_transform"] = [sx, 0.0, min_x, 0.0, -sy, max_y]
+
+    matrix = geotags.get(34264)
+    if matrix is not None and len(matrix) == 16:
+        a, b, c = float(matrix[0]), float(matrix[1]), float(matrix[3])
+        d, e, f = float(matrix[4]), float(matrix[5]), float(matrix[7])
+        meta["affine_transform"] = [a, b, c, d, e, f]
+        points = [(a*x+b*y+c, d*x+e*y+f) for x,y in
+                  [(0,0),(meta["width"],0),(0,meta["height"]),(meta["width"],meta["height"])]]
+        meta["bounds"] = dict(min_x=min(x for x,y in points), max_x=max(x for x,y in points),
+                              min_y=min(y for x,y in points), max_y=max(y for x,y in points))
 
     # Parse GeoKeyDirectoryTag (34735) for ProjectedCSTypeGeoKey (3072) or GeographicTypeGeoKey (2048)
     geokey_dir = geotags.get(34735)
@@ -210,94 +220,34 @@ def _extract_standard_image_metadata(file_path: str, meta: Dict[str, Any]):
 
 
 def validate_pair_compatibility(
-    raster_a_path: str,
-    raster_b_path: str,
-    task_name: str = "CHANGE_DETECTION",
-    tolerance_ratio: float = 0.05
+    raster_a_path: str, raster_b_path: str, task_name: str = "CHANGE_DETECTION",
+    tolerance_ratio: float = 1e-6,
 ) -> Dict[str, Any]:
-    """
-    Validates geospatial and spatial footprint compatibility between two paired rasters.
-    Used for T1/T2 change detection and Optical/SAR cross-modal analysis.
-
-    Checks:
-    1. Raster readability and metadata validity.
-    2. Coordinate Reference System (CRS) compatibility.
-    3. Spatial footprint / bounding box overlap.
-    4. Resolution and dimension compatibility.
-
-    Returns:
-        Structured compatibility summary if valid.
-    Raises:
-        GeospatialValidationError with actionable diagnostic instructions if incompatible.
-    """
-    meta_a = extract_raster_metadata(raster_a_path)
-    meta_b = extract_raster_metadata(raster_b_path)
-
-    # 1. CRS Compatibility Check
-    if meta_a["is_geotiff"] and meta_b["is_geotiff"]:
-        epsg_a = meta_a.get("epsg")
-        epsg_b = meta_b.get("epsg")
-        if epsg_a and epsg_b and epsg_a != epsg_b:
-            raise GeospatialValidationError(
-                f"Coordinate Reference System mismatch between paired rasters: "
-                f"Image A is EPSG:{epsg_a}, Image B is EPSG:{epsg_b}. "
-                f"Reproject both rasters to a common CRS before running {task_name}.",
-                error_code="CRS_MISMATCH",
-                details={"epsg_a": epsg_a, "epsg_b": epsg_b, "reproject_required": True}
-            )
-
-    # 2. Pixel Dimension Check
-    w_a, h_a = meta_a["width"], meta_a["height"]
-    w_b, h_b = meta_b["width"], meta_b["height"]
-    if (w_a, h_a) != (w_b, h_b):
-        raise GeospatialValidationError(
-            f"Spatial raster dimension mismatch: Image A is {w_a}x{h_a} px, "
-            f"Image B is {w_b}x{h_b} px. Both rasters must be co-registered with identical grid dimensions.",
-            error_code="DIMENSION_MISMATCH",
-            details={"dim_a": [w_a, h_a], "dim_b": [w_b, h_b]}
-        )
-
-    # 3. GeoTIFF Geographic Overlap / Footprint Check
-    overlap_pct = 100.0
-    if meta_a.get("bounds") and meta_b.get("bounds") and meta_a["is_geotiff"] and meta_b["is_geotiff"]:
-        b_a = meta_a["bounds"]
-        b_b = meta_b["bounds"]
-
-        # Calculate bounding box intersection
-        inter_min_x = max(b_a["min_x"], b_b["min_x"])
-        inter_min_y = max(b_a["min_y"], b_b["min_y"])
-        inter_max_x = min(b_a["max_x"], b_b["max_x"])
-        inter_max_y = min(b_a["max_y"], b_b["max_y"])
-
-        if inter_min_x >= inter_max_x or inter_min_y >= inter_max_y:
-            raise GeospatialValidationError(
-                f"Spatial footprints do not overlap geographically! "
-                f"Image A bounds: [{b_a['min_x']}, {b_a['min_y']}, {b_a['max_x']}, {b_a['max_y']}], "
-                f"Image B bounds: [{b_b['min_x']}, {b_b['min_y']}, {b_b['max_x']}, {b_b['max_y']}]. "
-                f"Verify geographic coordinates and ensure images cover the same area of interest.",
-                error_code="NO_SPATIAL_OVERLAP",
-                details={"bounds_a": b_a, "bounds_b": b_b}
-            )
-
-        inter_area = (inter_max_x - inter_min_x) * (inter_max_y - inter_min_y)
-        area_a = (b_a["max_x"] - b_a["min_x"]) * (b_a["max_y"] - b_a["min_y"])
-        overlap_pct = round((inter_area / max(area_a, 1e-6)) * 100.0, 2)
-
-        if overlap_pct < 80.0:
-            raise GeospatialValidationError(
-                f"Spatial footprint overlap between paired rasters is only {overlap_pct:.1f}% (< 80%). "
-                f"Co-register and crop both rasters to their mutual intersection before {task_name}.",
-                error_code="INSUFFICIENT_OVERLAP",
-                details={"overlap_percentage": overlap_pct}
-            )
-
+    """Require identical geographic grids, or explicitly report unknown alignment."""
+    a, b = extract_raster_metadata(raster_a_path), extract_raster_metadata(raster_b_path)
+    if (a["width"], a["height"]) != (b["width"], b["height"]):
+        raise GeospatialValidationError("Spatial raster dimension mismatch; co-register inputs first.", "DIMENSION_MISMATCH")
+    verified = False
+    if a["is_geotiff"] or b["is_geotiff"]:
+        if not all(m.get("epsg") and m.get("affine_transform") for m in [a,b]):
+            raise GeospatialValidationError("Both geospatial inputs need complete CRS and transform metadata.", "INCOMPLETE_GEOREFERENCE")
+        if a["epsg"] != b["epsg"]:
+            raise GeospatialValidationError("CRS mismatch; reproject to the same CRS before analysis.", "CRS_MISMATCH")
+        ta, tb = a["affine_transform"], b["affine_transform"]
+        pixel_size = max(math.hypot(ta[0], ta[3]), math.hypot(ta[1], ta[4]))
+        if pixel_size <= 0 or not all(math.isfinite(v) for v in ta+tb):
+            raise GeospatialValidationError("Invalid geographic transform.", "INVALID_TRANSFORM")
+        if any(not math.isclose(x,y,rel_tol=0,abs_tol=pixel_size*tolerance_ratio) for x,y in zip(ta,tb)):
+            raise GeospatialValidationError("Grid origin, resolution or rotation mismatch; resample to the same grid.", "GRID_MISMATCH")
+        verified = True
     return {
-        "status": "COMPATIBLE",
+        "status": "COMPATIBLE" if verified else "PIXEL_DIMENSIONS_MATCH",
         "task": task_name,
-        "raster_a": {"format": meta_a["format"], "dimensions": [w_a, h_a], "bands": meta_a["bands"], "crs": meta_a["crs"]},
-        "raster_b": {"format": meta_b["format"], "dimensions": [w_b, h_b], "bands": meta_b["bands"], "crs": meta_b["crs"]},
-        "spatial_overlap_percentage": overlap_pct,
-        "co_registered": True
+        "raster_a": a,
+        "raster_b": b,
+        "co_registered": True if verified else None,
+        "spatial_overlap_percentage": 100.0 if verified else None,
+        "warning": None if verified else "Geographic alignment is unknown. Equal dimensions do not verify co-registration.",
     }
 
 

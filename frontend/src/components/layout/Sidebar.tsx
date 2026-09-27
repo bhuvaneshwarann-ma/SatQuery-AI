@@ -80,10 +80,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           mobileOpen ? 'sidebar-mobile-open' : ''
         }`}
       >
-        <div className="sidebar-header">
-          <div className="sidebar-brand" onClick={() => handleNavClick('/')}>
-            <span className="brand-dot" />
-            {!collapsed && <span className="brand-name">SATQUERY AI</span>}
+          <div className="sidebar-header">
+            <div className="sidebar-brand" onClick={() => handleNavClick('/')}>
+            <span className="brand-emblem"><span className="brand-dot" /></span>
+            {!collapsed && <span><span className="brand-name">SATQUERY AI</span><span className="brand-subtitle">EARTH OBSERVATION SYSTEM</span></span>}
           </div>
           <button
             type="button"

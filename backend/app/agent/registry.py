@@ -1,3 +1,4 @@
+from ..config import DEFAULT_CHANGE_THRESHOLD
 """
 SatQuery AI — Predefined Tool Registry (Phase 4)
 Maintains a strictly controlled, inspectable catalog of specialist remote-sensing AI tools.
@@ -118,7 +119,7 @@ TOOL_REGISTRY: Dict[str, ToolDefinition] = {
             "threshold": ParameterSpec(
                 name="threshold",
                 type="float",
-                default=0.40,
+                default=DEFAULT_CHANGE_THRESHOLD,
                 min_value=0.10,
                 max_value=0.90,
                 description="Normalized differential distance threshold for binary change classification"
@@ -146,7 +147,7 @@ TOOL_REGISTRY: Dict[str, ToolDefinition] = {
                 description="Threshold DN for identifying metallic/corner-reflector radar echoes"
             ),
         },
-        model_or_engine="Dual-Stream Multi-Sensor Feature Ingestion & Cross-Modal Statistics Engine",
+        model_or_engine="Optical-SAR Display-Intensity Statistics",
         output_type="cross_modal_statistics",
         evidence_type="optical_sar_synergy_overlay",
         confidence_supported=True,
@@ -202,11 +203,17 @@ def validate_and_filter_parameters(tool_name: str, requested_params: Dict[str, A
             elif spec.type == "float":
                 val = float(value)
             elif spec.type == "bool":
-                val = bool(value)
+                if not isinstance(value, bool):
+                    raise ValueError("Expected JSON boolean")
+                val = value
             else:
                 val = str(value)
         except (ValueError, TypeError):
             warnings.append(f"Parameter '{param_name}' must be of type {spec.type}. Using default {spec.default}.")
+            continue
+
+        if isinstance(val, float) and not __import__("math").isfinite(val):
+            warnings.append(f"Parameter {param_name!r} must be finite.")
             continue
 
         # Allowed values check

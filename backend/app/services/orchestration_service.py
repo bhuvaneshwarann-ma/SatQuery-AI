@@ -293,8 +293,15 @@ def execute_agent_request(request: AnalysisRequest) -> OrchestrationResult:
     # -------------------------------------------------------------
     # Step 3: TOOL_EXECUTION (Single or Multi-Tool Orchestration)
     # -------------------------------------------------------------
+    alignment_warnings = [item["warning"] for item in geospatial_telemetry.values() if item.get("warning")]
     if selection.selected_tool == "MULTI_TOOL" and selection.task_plan:
-        return _execute_multi_tool_plan(request, selection, trace, t_start)
+        if selection.task_plan.intent == "OPTICAL_SAR_ANALYSIS":
+            from .cross_modal_service import execute_cross_modal
+            result = execute_cross_modal(request, selection, trace, t_start)
+        else:
+            result = _execute_multi_tool_plan(request, selection, trace, t_start)
+        result.limitations.extend(alignment_warnings)
+        return result
 
     # Standard Single-Tool Execution
     tool_raw: Dict[str, Any] = {}
@@ -309,7 +316,7 @@ def execute_agent_request(request: AnalysisRequest) -> OrchestrationResult:
     elif selection.selected_tool == "GROUNDING":
         tool_raw = run_grounding(
             image_path=request.image_path,
-            query=request.query,
+            query=(selection.task_plan.target or "objects").replace("_", " ") if selection.task_plan.intent == "OBJECT_COUNTING" else request.query,
             permitted_parameters=selection.permitted_parameters,
         )
 
@@ -384,6 +391,15 @@ def execute_agent_request(request: AnalysisRequest) -> OrchestrationResult:
     box_count = 0
     clean_exec_trace: List[Dict[str, Any]] = []
 
+    if tool_raw["status"] != "SUCCESS":
+        return OrchestrationResult(
+            status="ERROR", selected_tool=selection.selected_tool, model=tool_raw["model"],
+            answer=tool_raw.get("answer", "Specialist execution failed."), confidence=None,
+            metadata=tool_raw.get("metadata", {}), observable_execution_trace=trace,
+            task_plan=plan_dict, latency_ms=round((time.perf_counter() - t_start) * 1000, 2),
+            error_type=tool_raw.get("metadata", {}).get("error_type", "EXECUTION_ERROR"),
+        )
+
     if selection.selected_tool == "GROUNDING":
         box_count = len(evidence_payload.get("bounding_boxes", [])) if evidence_payload else 0
         confidence_val = evaluate_grounding_confidence(
@@ -413,7 +429,7 @@ def execute_agent_request(request: AnalysisRequest) -> OrchestrationResult:
         })
 
     elif selection.selected_tool == "CHANGE_DETECTION":
-        changed_px = evidence_payload.get("changed_pixel_count", 0) if evidence_payload else 0
+        changed_px = evidence_payload.get("changed_pixels", 0) if evidence_payload else 0
         confidence_val = evaluate_change_confidence(
             stability_margin=tool_raw.get("confidence"),
             changed_pixels=changed_px,
@@ -429,7 +445,7 @@ def execute_agent_request(request: AnalysisRequest) -> OrchestrationResult:
         clean_exec_trace.append({
             "tool": "CHANGE_DETECTION",
             "status": "success" if tool_raw["status"] == "SUCCESS" else "error",
-            "threshold": 0.30,
+            "threshold": selection.permitted_parameters.get("threshold"),
             "artifact": tool_raw.get("evidence_reference"),
             "metrics": {
                 "changed_pixel_count": changed_px,
@@ -448,8 +464,8 @@ def execute_agent_request(request: AnalysisRequest) -> OrchestrationResult:
         })
 
     elif selection.selected_tool == "OPTICAL_SAR":
-        corr = evidence_payload.get("cross_modal_correlation", 0.428) if evidence_payload else 0.428
-        anom_px = evidence_payload.get("radar_anomaly_pixel_count", 0) if evidence_payload else 0
+        corr = evidence_payload.get("cross_modal_correlation") if evidence_payload else None
+        anom_px = evidence_payload.get("radar_dominant_anomalies", 0) if evidence_payload else 0
         confidence_val = evaluate_optical_sar_confidence(
             correlation=corr,
             anomaly_pixels=anom_px,
@@ -459,7 +475,7 @@ def execute_agent_request(request: AnalysisRequest) -> OrchestrationResult:
         if not visual_evidence_val:
             visual_evidence_val = [{
                 "category": "radar_backscatter_anomalies",
-                "description": f"{anom_px:,} high-backscatter radar echo pixels identified across co-registered grid."
+                "description": f"{anom_px:,} high-backscatter radar echo pixels identified across the pixel grid; alignment may be unverified."
             }]
 
         clean_exec_trace.append({
@@ -498,6 +514,7 @@ def execute_agent_request(request: AnalysisRequest) -> OrchestrationResult:
         is_counting_query=is_counting,
         box_count=box_count,
     )
+    limitations_list.extend(alignment_warnings)
     if is_counting:
         target_entity = getattr(selection.task_plan, "target", None) or "target objects"
         boxes = evidence_payload.get("bounding_boxes", []) if evidence_payload else []
@@ -550,13 +567,18 @@ def _execute_multi_tool_plan(
     plan = selection.task_plan
     plan_dict = plan.to_dict() if plan else None
 
+    requested_direction = next((direction for direction in ("increased", "decreased", "unchanged")
+                                if direction in request.query.lower()), None)
+
+    step_params = {step.tool: step.parameters for step in plan.plan}
+
     # Step A: CHANGE_DETECTION
     t_step1_start = time.perf_counter()
     change_raw = run_change_detection(
         image_path=request.image_path,
         second_image_path=request.second_image_path,
         query=request.query,
-        permitted_parameters=selection.permitted_parameters,
+        permitted_parameters=step_params["CHANGE_DETECTION"],
     )
     t_step1_ms = round((time.perf_counter() - t_step1_start) * 1000, 2)
 
@@ -585,13 +607,13 @@ def _execute_multi_tool_plan(
         )
 
     # Step B: GROUNDING (Localize target entity in baseline scene)
-    target_entity = plan.target if plan and plan.target else "built_up_area"
+    target_entity = plan.target if plan and plan.target else "land_cover"
     grounding_query = f"{target_entity.replace('_', ' ')}"
     t_step2_start = time.perf_counter()
     grounding_raw = run_grounding(
         image_path=request.image_path,
         query=grounding_query,
-        permitted_parameters=selection.permitted_parameters,
+        permitted_parameters=step_params["GROUNDING"],
     )
     t_step2_ms = round((time.perf_counter() - t_step2_start) * 1000, 2)
 
@@ -606,16 +628,33 @@ def _execute_multi_tool_plan(
         "bounding_boxes": grounding_raw.get("bounding_boxes", []),
     })
 
+    if grounding_raw["status"] != "SUCCESS":
+        return OrchestrationResult(
+            status="ERROR", selected_tool="MULTI_TOOL", model="Multi-Specialist Pipeline",
+            answer=f"Multi-tool execution failed at Stage 2: {grounding_raw.get('answer')}",
+            confidence=None, task_plan=plan_dict, observable_execution_trace=trace,
+            latency_ms=round((time.perf_counter() - t_start) * 1000, 2),
+            error_type="MULTI_TOOL_STAGE2_FAILED",
+        )
+
     # Step C: VQA (Describe the change across localized regions)
     vqa_prompt = (
-        f"Describe the structural and land cover changes observed in the {target_entity.replace('_', ' ')} "
-        f"between these two satellite observation dates."
+        f"{request.query}\nCompare the two supplied observations in order T1 then T2. "
+        "Describe visible transitions and their positions (top/bottom/left/right). "
+        "Distinguish added, removed and unchanged features. If the requested direction "
+        "of change is unclear, say that it cannot be determined. Do not invent locations or dates. "
+        f"An independent feature-difference tool flags {change_raw.get('change_percentage', 0):.2f}% "
+        "of pixels; this is an uncalibrated cue, not a semantic class area measurement. "
+        f"Baseline detector boxes for {target_entity}: {grounding_raw.get('bounding_boxes', [])}. "
+        "These boxes alone do not prove temporal change."
     )
     t_step3_start = time.perf_counter()
     vqa_raw = run_vqa(
-        image_path=request.second_image_path or request.image_path,
+        image_path=request.image_path,
+        second_image_path=request.second_image_path,
+        pair_kind="temporal",
         query=vqa_prompt,
-        permitted_parameters=selection.permitted_parameters,
+        permitted_parameters=step_params["VQA"],
     )
     t_step3_ms = round((time.perf_counter() - t_step3_start) * 1000, 2)
 
@@ -627,6 +666,15 @@ def _execute_multi_tool_plan(
         "purpose": "describe the observed change across identified regions",
         "latency_ms": t_step3_ms,
     })
+
+    if vqa_raw["status"] != "SUCCESS":
+        return OrchestrationResult(
+            status="ERROR", selected_tool="MULTI_TOOL", model="Multi-Specialist Pipeline",
+            answer=f"Multi-tool execution failed at Stage 3: {vqa_raw.get('answer')}",
+            confidence=None, task_plan=plan_dict, observable_execution_trace=trace,
+            latency_ms=round((time.perf_counter() - t_start) * 1000, 2),
+            error_type="MULTI_TOOL_STAGE3_FAILED",
+        )
 
     # Step D: EVIDENCE FUSION
     t_fusion_start = time.perf_counter()
@@ -647,26 +695,13 @@ def _execute_multi_tool_plan(
         "annotated_artifact": change_ev.get("annotated_artifact") or grounding_ev.get("annotated_artifact"),
         "total_stages_executed": 3,
         "target_entity": target_entity,
+        "requested_change_direction": requested_direction,
         "changed_pixels": changed_px,
         "change_percentage": change_pct,
         "detections_count": num_det,
     }
 
-    fused_confidence = {
-        "level": "HIGH" if (change_pct > 0 and num_det > 0) else "MEDIUM",
-        "type": "multi-specialist-composite",
-        "score": round(float(det_conf or 0.5), 4),
-        "explanation": (
-            f"Composite evidence: Change differencer identified {changed_px:,} altered pixels ({change_pct:.2f}%). "
-            f"Grounding localized {num_det} target bounding box(es) with detector score {det_conf or 'N/A'}. "
-            f"VLM generated verified scene change description."
-        ),
-        "stage_scores": {
-            "change_stability_margin": change_raw.get("confidence"),
-            "grounding_detector_score": det_conf,
-            "vqa_confidence": vqa_raw.get("confidence"),
-        }
-    }
+    fused_confidence = None  # Independent outputs do not establish combined factual confidence.
 
     fused_visual_evidence = [
         {
@@ -678,7 +713,7 @@ def _execute_multi_tool_plan(
             "description": f"{num_det} spatial bounding box(es) localizing '{target_entity}'."
         },
         {
-            "category": "semantic_change_narrative",
+            "category": "paired_change_description",
             "description": vqa_raw.get("answer", "")[:150] + "..."
         }
     ]
@@ -688,7 +723,7 @@ def _execute_multi_tool_plan(
         f"Multi-Specialist Change Analysis Complete:\n"
         f"1. Temporal Differencing: Detected {changed_px:,} altered pixels ({change_pct:.2f}% scene area) between T1 and T2.\n"
         f"2. Spatial Localization: Localized {num_det} '{target_entity.replace('_', ' ')}' structure(s) (Detector Confidence: {det_conf or 'N/A'}).\n"
-        f"3. Change Description: {vqa_raw.get('answer', 'Changes observed in the localized target area.')}"
+        f"3. Paired-image interpretation (uncalibrated): {vqa_raw.get('answer', 'Changes observed in the localized target area.')}"
     )
 
     t_fusion_ms = round((time.perf_counter() - t_fusion_start) * 1000, 2)
@@ -697,7 +732,7 @@ def _execute_multi_tool_plan(
         "status": "COMPLETED",
         "latency_ms": t_fusion_ms,
         "fused_stages": ["CHANGE_DETECTION", "GROUNDING", "VQA"],
-        "confidence_level": fused_confidence["level"],
+        "confidence_level": "UNAVAILABLE",
     })
 
     total_latency = round((time.perf_counter() - t_start) * 1000, 2)
@@ -714,7 +749,7 @@ def _execute_multi_tool_plan(
         {
             "tool": "CHANGE_DETECTION",
             "status": "success" if change_raw.get("status") == "SUCCESS" else "error",
-            "threshold": 0.30,
+            "threshold": selection.permitted_parameters.get("threshold"),
             "artifact": change_raw.get("evidence_reference"),
             "metrics": {
                 "changed_pixel_count": changed_px,
@@ -744,6 +779,7 @@ def _execute_multi_tool_plan(
         is_counting_query=False,
     )
     fused_answer, _ = OutputFirewall.sanitize_unsupported_language(fused_answer)
+    multi_limitations.append("VQA sees both dates. Generated temporal descriptions are uncalibrated; baseline boxes and feature differences do not independently verify semantic transitions.")
     multi_evidence_items = [change_ev, grounding_ev, vqa_ev]
 
     return OrchestrationResult(
@@ -753,7 +789,7 @@ def _execute_multi_tool_plan(
         answer=fused_answer,
         confidence=fused_confidence,
         evidence=fused_evidence,
-        image_description=f"Multi-stage temporal analysis for '{target_entity}' across registered satellite pair.",
+        image_description=f"Multi-stage temporal analysis for '{target_entity}' across the supplied satellite pair.",
         visual_evidence=fused_visual_evidence,
         task_plan=plan_dict,
         metadata={
@@ -766,6 +802,12 @@ def _execute_multi_tool_plan(
             "grounding_latency_ms": t_step2_ms,
             "vqa_latency_ms": t_step3_ms,
             "fusion_latency_ms": t_fusion_ms,
+            "requested_change_direction": requested_direction,
+            "uncertainty": {
+                "status": "uncalibrated",
+                "type": "qualitative_evidence_strength",
+                "reason": "Feature differences and detector boxes do not measure semantic class area or calibrated answer probability.",
+            },
         },
         observable_execution_trace=trace,
         execution_trace=clean_multi_trace,

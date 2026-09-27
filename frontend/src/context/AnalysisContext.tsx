@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type {
   AnalysisApiResponse,
   AnalyzePayload,
@@ -20,6 +20,8 @@ export interface ActiveAnalysisState {
   sarImage: File | null;
   sarPreview: string | null;
   parameters: Record<string, any>;
+  evaluationMode?: boolean;
+  inputMetadata?: Record<string, any>;
 }
 
 export interface ActiveError {
@@ -48,6 +50,7 @@ interface AnalysisContextType {
   setSecondImage: (file: File | null, previewUrl?: string | null) => void;
   setSarImage: (file: File | null, previewUrl?: string | null) => void;
   setParameter: (key: string, value: any) => void;
+  setInputOptions: (options: Pick<ActiveAnalysisState, "evaluationMode" | "inputMetadata">) => void;
   resetInputs: () => void;
   loadPreset: (preset: {
     mode: TaskMode;
@@ -67,9 +70,24 @@ interface AnalysisContextType {
   setResultDirectly: (res: AnalysisApiResponse, previews?: { primary?: string | null; second?: string | null; sar?: string | null }, q?: string) => void;
 }
 
+async function historyPreview(file: File | null, existing: string | null): Promise<string | null> {
+  if (!file) return existing?.startsWith('blob:') ? null : existing;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 256 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    return canvas.toDataURL('image/jpeg', 0.65);
+  } catch { return null; }
+}
+
 const AnalysisContext = createContext<AnalysisContextType | null>(null);
 
 export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const inFlight = useRef(false);
   const { addHistoryEntry } = useHistory();
   const toast = useToast();
   const { navigate } = useRouter();
@@ -84,6 +102,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     sarImage: null,
     sarPreview: null,
     parameters: {},
+    evaluationMode: false,
+    inputMetadata: {},
   });
 
   const [loading, setLoading] = useState(false);
@@ -108,7 +128,12 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [loading]);
 
   const setTaskMode = useCallback((taskMode: TaskMode) => {
-    setState((prev) => ({ ...prev, taskMode }));
+    setState((prev) => ({ ...prev, taskMode, parameters: {},
+      secondImage: taskMode === 'CHANGE_DETECTION' || taskMode === 'AUTO' ? prev.secondImage : null,
+      secondPreview: taskMode === 'CHANGE_DETECTION' || taskMode === 'AUTO' ? prev.secondPreview : null,
+      sarImage: taskMode === 'OPTICAL_SAR' || taskMode === 'AUTO' ? prev.sarImage : null,
+      sarPreview: taskMode === 'OPTICAL_SAR' || taskMode === 'AUTO' ? prev.sarPreview : null,
+    }));
   }, []);
 
   const setQuery = useCallback((query: string) => {
@@ -146,6 +171,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
   }, []);
 
+  const setInputOptions = useCallback((options: Pick<ActiveAnalysisState, "evaluationMode" | "inputMetadata">) => setState(prev => ({ ...prev, ...options })), []);
+
   const setParameter = useCallback((key: string, value: any) => {
     setState((prev) => ({
       ...prev,
@@ -164,6 +191,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       sarImage: null,
       sarPreview: null,
       parameters: {},
+      evaluationMode: false,
+      inputMetadata: {},
     });
     setResult(null);
     setError(null);
@@ -184,6 +213,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         // Fetch primary
         const primRes = await fetch(`/samples/${preset.primaryAsset}`);
+        if (!primRes.ok) throw new Error("Sample image unavailable");
         const primBlob = await primRes.blob();
         const primFile = new File([primBlob], preset.primaryAsset, {
           type: primBlob.type || 'image/jpeg',
@@ -193,7 +223,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // Fetch second if any
         if (preset.secondAsset) {
           const secRes = await fetch(`/samples/${preset.secondAsset}`);
-          const secBlob = await secRes.blob();
+          if (!secRes.ok) throw new Error("Sample image unavailable");
+        const secBlob = await secRes.blob();
           const secFile = new File([secBlob], preset.secondAsset, {
             type: secBlob.type || 'image/jpeg',
           });
@@ -205,7 +236,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // Fetch SAR if any
         if (preset.sarAsset) {
           const sarRes = await fetch(`/samples/${preset.sarAsset}`);
-          const sarBlob = await sarRes.blob();
+          if (!sarRes.ok) throw new Error("Sample image unavailable");
+        const sarBlob = await sarRes.blob();
           const sarFile = new File([sarBlob], preset.sarAsset, {
             type: sarBlob.type || 'image/jpeg',
           });
@@ -234,12 +266,14 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       q?: string
     ) => {
       setResult(res);
-      if (q) setQuery(q);
-      if (previews?.primary) setState((p) => ({ ...p, primaryPreview: previews.primary || null }));
-      if (previews?.second) setState((p) => ({ ...p, secondPreview: previews.second || null }));
-      if (previews?.sar) setState((p) => ({ ...p, sarPreview: previews.sar || null }));
+      setState(p => ({ ...p, query: q || '', parameters: {},
+        primaryImage: null, secondImage: null, sarImage: null,
+        primaryPreview: previews?.primary || null,
+        secondPreview: previews?.second || null,
+        sarPreview: previews?.sar || null,
+      }));
     },
-    [setQuery]
+    []
   );
 
   const executeAnalysis = useCallback(async (): Promise<AnalysisApiResponse | null> => {
@@ -248,20 +282,18 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return null;
     }
 
+    if (inFlight.current) return null;
+    inFlight.current = true;
     setLoading(true);
     setError(null);
     setResult(null);
     setActiveStage('INPUT_VALIDATION');
     toast.info('Analysis Started', `Submitting query to agentic pipeline...`);
 
-    // Advance operational stages reflecting real pipeline steps
-    let stageTimer: any;
-    stageTimer = setTimeout(() => setActiveStage('ROUTER'), 250);
-    setTimeout(() => setActiveStage('TOOL_SELECTED'), 600);
-    setTimeout(() => setActiveStage('TOOL_EXECUTION'), 1000);
-
     const payload: AnalyzePayload = {
       query: state.query.trim(),
+      evaluation_mode: state.evaluationMode ?? false,
+      input_metadata: state.inputMetadata,
       image: state.primaryImage,
       second_image: state.secondImage,
       sar_image: state.sarImage,
@@ -271,30 +303,27 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     try {
       const apiResult = await analyzeRequest(payload);
-      clearTimeout(stageTimer);
-      setActiveStage('EVIDENCE');
-      setTimeout(() => setActiveStage('CONFIDENCE'), 150);
-      setTimeout(() => setActiveStage('RESULT'), 300);
+      setActiveStage('RESULT');
 
       // Handle backend status
       if (apiResult.status === 'NEEDS_CLARIFICATION') {
         setError({
           status: apiResult.status,
           errorType: apiResult.error_type || 'NEEDS_CLARIFICATION',
-          message: apiResult.answer,
+          message: apiResult.answer || apiResult.metadata?.message || "Analysis could not be completed.",
           clarificationPrompt: apiResult.metadata?.clarification_prompt,
         });
         setResult(apiResult);
         toast.warning('Clarification Needed', 'Query requires more specific analytical intent.');
-      } else if (apiResult.status === 'INVALID_INPUT' || apiResult.status === 'ERROR') {
+      } else if (apiResult.status !== 'SUCCESS') {
         setError({
           status: apiResult.status,
           errorType: apiResult.error_type,
-          message: apiResult.answer,
+          message: apiResult.answer || apiResult.metadata?.message || "Analysis could not be completed.",
           validationErrors: apiResult.metadata?.validation_errors,
         });
         setResult(apiResult);
-        toast.error('Validation Error', apiResult.answer);
+        toast.error(apiResult.status === 'INVALID_INPUT' ? 'Input Requirements Not Met' : 'Analysis Failed', apiResult.answer || apiResult.metadata?.message || 'Please retry the analysis.');
       } else {
         setResult(apiResult);
         toast.success(
@@ -316,9 +345,9 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           status: apiResult.status,
           confidenceLevel: confLevel,
           confidenceScore: confScore,
-          primaryPreview: state.primaryPreview,
-          secondPreview: state.secondPreview,
-          sarPreview: state.sarPreview,
+          primaryPreview: await historyPreview(state.primaryImage, state.primaryPreview),
+          secondPreview: await historyPreview(state.secondImage, state.secondPreview),
+          sarPreview: await historyPreview(state.sarImage, state.sarPreview),
           result: apiResult,
         });
 
@@ -328,7 +357,6 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       return apiResult;
     } catch (err: any) {
-      clearTimeout(stageTimer);
       setActiveStage('IDLE');
       const msg = err?.message || 'Unable to communicate with SatQuery AI backend at http://127.0.0.1:8000.';
       setError({
@@ -339,6 +367,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       toast.error('Connection Failed', msg);
       return null;
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   }, [
@@ -348,6 +377,8 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     state.sarImage,
     state.taskMode,
     state.parameters,
+    state.evaluationMode,
+    state.inputMetadata,
     state.primaryPreview,
     state.secondPreview,
     state.sarPreview,
@@ -366,6 +397,7 @@ export const AnalysisProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setSecondImage,
         setSarImage,
         setParameter,
+        setInputOptions,
         resetInputs,
         loadPreset,
         loading,

@@ -28,6 +28,8 @@ TASK_TYPES = [
 
 def load_benchmark_blacklist(manifest_path: str) -> Set[str]:
     """Extracts benchmark sample queries and image filenames to prevent training leakage."""
+    if not os.path.isfile(manifest_path):
+        raise FileNotFoundError("Benchmark manifest required for leakage audit")
     blacklist = set()
     if os.path.exists(manifest_path):
         with open(manifest_path, "r", encoding="utf-8") as f:
@@ -261,11 +263,16 @@ def prepare_and_validate_dataset(
         clean_samples.append(clean_item)
         stats_by_type[t_type] = stats_by_type.get(t_type, 0) + 1
 
-    # Shuffle and split
-    random.shuffle(clean_samples)
-    val_size = max(1, int(len(clean_samples) * val_ratio))
-    val_set = clean_samples[:val_size]
-    train_set = clean_samples[val_size:]
+    # Keep related port originals, synthetic variants and proxy SAR in one group.
+    def scene_group(item):
+        return "port" if "satellite_port" in item["image"] else item["image"]
+    groups = sorted({scene_group(item) for item in clean_samples})
+    if len(groups) < 2:
+        raise ValueError("At least two independent scenes are needed for a held-out split")
+    random.shuffle(groups)
+    val_groups = set(groups[:max(1, int(len(groups) * val_ratio))])
+    val_set = [item for item in clean_samples if scene_group(item) in val_groups]
+    train_set = [item for item in clean_samples if scene_group(item) not in val_groups]
 
     os.makedirs(os.path.dirname(output_train), exist_ok=True)
     with open(output_train, "w", encoding="utf-8") as f:

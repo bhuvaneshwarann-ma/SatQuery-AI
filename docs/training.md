@@ -1,59 +1,20 @@
-# Training & Adaptation Strategy — SatQuery AI
+# Training and evaluation
 
-## 1. Document Overview
-This document outlines the training, adaptation, fine-tuning, and prompt-engineering strategies for **SatQuery AI**'s remote-sensing vision and vision-language components.
+Training masks user/prompt/image-prefix and padding positions, supervises assistant answer tokens, verifies exact prompt-prefix token agreement, seeds training, and handles partial gradient-accumulation groups. Existing checkpoints are protected from overwrite.
 
----
+Related port, synthetic-port and proxy-SAR imagery stay in one group. The current dataset contains only two independent groups: the seeded split is five training questions and sixteen validation questions. A larger scene-diverse corpus is needed before generalization claims. Missing benchmark manifests fail the leakage audit; the existing filename/query checks are not a comprehensive geographic overlap audit.
 
-## 2. Adaptation Objectives
-* **Overhead Domain Transfer**: Align general vision-language capabilities with remote-sensing nadir viewing angles, multi-spectral band variations, and small-scale visual features.
-* **Efficient Compute Footprint**: Prioritize parameter-efficient adaptation (LoRA, prefix tuning, instruction tuning) over full pre-training to operate within hackathon compute limits.
-* **Cross-Modal Grounding**: Bridge textual referring expressions to accurate pixel-level and bounding-box coordinates.
+The evaluator runs the same loaded model with adapters disabled and enabled for each benchmark example. Both paths share resolution, query, decoding and answer normalization. Baseline values are measured rather than filled from constants. Reports include per-sample predictions, failures, environment, manifest hash, and settings. Timing covers generation only, excluding shared preprocessing/model loading.
 
----
+Legacy adapter and benchmark files remain for provenance. Use results/vqa_controlled_comparison.json for the corrected comparison, and inspect its failure count before interpreting scores. Baseline remains the application default; enabling an adapter requires VQA_LORA_ADAPTER_DIR.
+## Reproducible BigEarthNet.txt adaptation
 
-## 3. Dataset Requirements & Benchmarks
+The repository includes a paired S1/S2 manifest preparer and a training config. The annotation parquet and Sentinel image archive are intentionally provisioned by the operator because the archive is large.
 
-### 3.1 Remote-Sensing VQA Datasets
-* Candidate benchmarks: RSVQA (LR/HR), RSIVQA, or curated domain QA pairs covering counting, presence, and spatial relationship questions.
+```powershell
+.venv\Scripts\python.exe training\data\prepare_bigearthnet_txt.py BigEarthNet.txt.parquet Encoded-BigEarthNet --output training/data/bigearthnet_txt_train.json --split train --limit 800
+.venv\Scripts\python.exe training\data\prepare_bigearthnet_txt.py BigEarthNet.txt.parquet Encoded-BigEarthNet --output training/data/bigearthnet_txt_validation.json --split validation --limit 40
+.venv\Scripts\python.exe training\train_vqa_lora.py --config training/configs/bigearthnet_txt.yaml
+```
 
-### 3.2 Visual Grounding & Object Detection Datasets
-* Datasets featuring oriented or horizontal bounding boxes for aerial targets (DOTA, DIOR, FAIR1M).
-* Classes of interest: Storage tanks, cargo ships, aircraft, bridges, harbors, solar arrays.
-
-### 3.3 Bi-Temporal Change Detection Datasets
-* Paired remote-sensing change datasets (LEVIR-CD, WHU-CD, SYSU-CD) containing pre/post registered scenes and change masks.
-
-### 3.4 Optical-SAR Multi-Sensor Datasets
-* Co-registered optical and SAR imagery (e.g., SEN1-2 dataset, SpaceNet 6) for cross-sensor feature correlation.
-
----
-
-## 4. Fine-Tuning & Adaptation Methodologies
-
-### 4.1 Parameter-Efficient Fine-Tuning (PEFT / LoRA)
-* Freeze base vision transformer and language decoder backbones.
-* Inject low-rank adapter (LoRA) matrices into attention projection layers to learn remote-sensing vocabulary and spatial tokens.
-
-### 4.2 Instruction Tuning & Prompt Formatting
-* Construct structured instruction prompts containing:
-  - System role (Earth Observation specialist).
-  - Spatial resolution context (GSD).
-  - Explicit output constraint (coordinate brackets, confidence, visual evidence tag).
-
-### 4.3 Change Detection Head Adaptation
-* Training lightweight difference-decoder modules on paired feature vectors to predict binary and semantic change masks.
-
----
-
-## 5. Evaluation Metrics & Benchmarks
-* **VQA Evaluation**: Accuracy, BLEU, ROUGE-L, CIDEr.
-* **Grounding & Detection**: Mean Average Precision ($mAP_{50}$, $mAP_{50:95}$), Average Recall ($AR$).
-* **Change Detection**: Intersection over Union ($IoU$), F1-Score, Overall Accuracy ($OA$).
-* **Confidence Calibration**: Expected Calibration Error ($ECE$).
-
----
-
-## 6. Open Decisions (To Be Finalized)
-* Selection of target parameter count (e.g., lightweight ~3B/7B VLM vs. modular vision-encoder + LLM).
-* Finalization of training execution environment (local GPU vs. cloud compute instances).
+The preparer groups rows by Sentinel patch, preserves the S1/S2 paths and annotation type, and fails if the requested split is absent. Training masks prompt and padding tokens, so only assistant answers contribute to loss.

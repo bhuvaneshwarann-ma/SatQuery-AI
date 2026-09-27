@@ -40,3 +40,8 @@ test_junc/
 runs/
 training/offload/
 training/checkpoints/offload/
+
+data/artifacts/
+data/sources/
+
+results/*.progress

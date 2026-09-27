@@ -26,6 +26,8 @@ def run_vqa(
     image_path: str,
     query: str,
     permitted_parameters: Optional[Dict[str, Any]] = None,
+    second_image_path: Optional[str] = None,
+    pair_kind: str = "temporal",
 ) -> Dict[str, Any]:
     """
     Executes a single remote-sensing VQA forward pass on demand.
@@ -81,6 +83,11 @@ def run_vqa(
 
     img_w, img_h = 0, 0
     try:
+        if second_image_path:
+            if pair_kind not in {"temporal", "optical_sar"}:
+                raise ValueError("Unsupported image-pair kind")
+            with Image.open(second_image_path) as second:
+                second.verify()
         with Image.open(image_path) as img:
             img.verify()
         with Image.open(image_path) as img:
@@ -108,6 +115,10 @@ def run_vqa(
     do_sample = bool(params.get("do_sample", False))
     min_pixels = int(params.get("min_pixels", 200704))
     max_pixels = int(params.get("max_pixels", 401408))
+    if second_image_path:
+        # Keep the total visual budget bounded across the two observations.
+        min_pixels = max(3136, min_pixels // 2)
+        max_pixels = max(min_pixels, max_pixels // 2)
 
     try:
         processor = AutoProcessor.from_pretrained(
@@ -123,24 +134,29 @@ def run_vqa(
         )
 
         model_name = VLM_MODEL_ID
-        adapter_path = params.get("adapter_path") or os.environ.get("VQA_LORA_ADAPTER_DIR", "training/checkpoints/satquery_vqa_lora")
-        if adapter_path and os.path.exists(os.path.join(adapter_path, "adapter_config.json")):
-            try:
-                from peft import PeftModel
-                offload_dir = os.path.join(os.path.dirname(adapter_path), "offload")
-                os.makedirs(offload_dir, exist_ok=True)
-                model = PeftModel.from_pretrained(model, adapter_path, offload_dir=offload_dir)
-                model_name = f"{VLM_MODEL_ID} + SatQuery-LoRA"
-            except Exception as peft_err:
-                print(f"[VQA] Notice: Base model loaded without adapter: {peft_err}")
+        adapter_path = params.get("adapter_path") or os.environ.get("VQA_LORA_ADAPTER_DIR")
+        if adapter_path:
+            if not os.path.isfile(os.path.join(adapter_path, "adapter_config.json")):
+                raise FileNotFoundError("Configured LoRA adapter is missing")
+            from peft import PeftModel
+            offload_dir = os.path.join(os.path.dirname(adapter_path), "offload")
+            os.makedirs(offload_dir, exist_ok=True)
+            model = PeftModel.from_pretrained(model, adapter_path, offload_dir=offload_dir)
+            model_name = f"{VLM_MODEL_ID} + configured LoRA"
+        model.eval()
 
+        content = [{"type": "image", "image": image_path}]
+        if second_image_path:
+            labels = ("Image 1 is the earlier observation T1; image 2 is the later observation T2."
+                      if pair_kind == "temporal" else
+                      "Image 1 is optical; image 2 is the co-located SAR display image.")
+            content = [{"type": "text", "text": labels}, *content,
+                       {"type": "image", "image": second_image_path}]
+        content.append({"type": "text", "text": query.strip()})
         messages = [
             {
                 "role": "user",
-                "content": [
-                    {"type": "image", "image": image_path},
-                    {"type": "text", "text": query.strip()},
-                ],
+                "content": content,
             }
         ]
 
@@ -157,22 +173,9 @@ def run_vqa(
         inputs = inputs.to(model.device)
 
         with torch.inference_mode():
-            try:
-                generated_ids = model.generate(
-                    **inputs,
-                    max_new_tokens=max_new_tokens,
-                    do_sample=do_sample,
-                )
-            except Exception as gen_err:
-                if hasattr(model, "base_model"):
-                    print(f"[VQA] Notice: PEFT generate fallback to base model: {gen_err}")
-                    generated_ids = model.base_model.generate(
-                        **inputs,
-                        max_new_tokens=max_new_tokens,
-                        do_sample=do_sample,
-                    )
-                else:
-                    raise gen_err
+            generated_ids = model.generate(
+                **inputs, max_new_tokens=max_new_tokens, do_sample=do_sample,
+            )
 
         generated_ids_trimmed = [
             out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
@@ -187,14 +190,7 @@ def run_vqa(
         answer, image_description, visual_evidence = extract_vqa_rich_evidence(
             raw_answer, query, image_path, img_w, img_h
         )
-        conf_payload = evaluate_vqa_confidence(
-            query=query,
-            image_path=image_path,
-            answer=answer,
-            image_description=image_description,
-            visual_evidence=visual_evidence,
-            metadata={"model": model_name},
-        )
+        conf_payload = None  # No independently calibrated answer confidence.
         latency_ms = round((time.perf_counter() - t_start) * 1000, 2)
 
         # 4. Evidence Structure (factual metadata and observable evidence features)
@@ -202,6 +198,8 @@ def run_vqa(
             {
                 "type": "vqa_spatial_metadata",
                 "image_reference": image_path,
+                "second_image_reference": second_image_path,
+                "pair_kind": pair_kind if second_image_path else None,
                 "dimensions": {"width": img_w, "height": img_h},
                 "query": query.strip(),
                 "model": model_name,
@@ -224,9 +222,11 @@ def run_vqa(
                 "max_new_tokens": max_new_tokens,
                 "tokens_generated": len(generated_ids_trimmed[0]) if generated_ids_trimmed else 0,
                 "visual_token_bounds": f"{min_pixels}-{max_pixels}",
-                "confidence_type": conf_payload.get("type"),
-                "confidence_level": conf_payload.get("level"),
-                "confidence_score": conf_payload.get("score"),
+                "confidence_type": "unavailable",
+                "confidence_level": None,
+                "confidence_score": None,
+                "input_image_count": 2 if second_image_path else 1,
+                "pair_kind": pair_kind if second_image_path else None,
             }
         }
 
@@ -236,7 +236,7 @@ def run_vqa(
             "status": "ERROR",
             "tool": "VQA",
             "model": VLM_MODEL_ID,
-            "answer": "",
+            "answer": "The VQA model ran out of GPU memory. Close other GPU applications or use a smaller image.",
             "confidence": None,
             "latency_ms": latency_ms,
             "evidence": [],
@@ -249,7 +249,7 @@ def run_vqa(
             "status": "ERROR",
             "tool": "VQA",
             "model": VLM_MODEL_ID,
-            "answer": "",
+            "answer": f"VQA inference failed: {err}",
             "confidence": None,
             "latency_ms": latency_ms,
             "evidence": [],

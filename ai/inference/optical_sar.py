@@ -6,6 +6,7 @@ and rigorous spaceborne vs proxy SAR provenance verification.
 """
 
 import os
+from backend.app.services.artifact_service import new_artifact_path
 import time
 import gc
 import traceback
@@ -17,7 +18,7 @@ import torch.nn.functional as F
 from PIL import Image, ImageDraw, ImageFont
 
 
-OPTICAL_SAR_MODEL_ID = "Dual-Stream Deep Multi-Sensor Feature Ingestion & Cross-Modal Fusion Engine"
+OPTICAL_SAR_MODEL_ID = "Optical-SAR Display-Intensity Statistics"
 
 
 class DualStreamOpticalSARFusionNetwork(nn.Module):
@@ -69,9 +70,8 @@ def classify_sar_modality(sar_path: str) -> str:
     path_lower = sar_path.lower()
     if "proxy" in path_lower or "synthetic" in path_lower:
         return "proxy_sar"
-    elif any(k in path_lower for k in ["sentinel", "terrasar", "radarsat", "nisar", "alos", "cosmo"]):
-        return "spaceborne_sar"
-    return "proxy_sar" if "sample_satellite_port_proxy_sar" in path_lower else "unverified_sar"
+    return "unverified_sar"
+
 
 
 def render_optical_sar_composite(
@@ -110,10 +110,10 @@ def render_optical_sar_composite(
     composite.paste(sar_rgb, (w, banner_h))
     composite.paste(fusion_img, (w * 2, banner_h))
 
-    sar_tag = "[GENUINE SPACEBORNE SAR]" if sar_classification == "spaceborne_sar" else "[PROXY SIMULATED SAR]"
+    sar_tag = "[PROXY LABEL; UNVERIFIED]" if sar_classification == "proxy_sar" else "[PROVENANCE UNVERIFIED]"
     draw.text((20, 12), "PANEL 1: Optical RGB", fill=(255, 255, 255), font=font)
     draw.text((w + 20, 12), f"PANEL 2: SAR Microwave Backscatter {sar_tag}", fill=(200, 200, 200), font=font)
-    draw.text((w * 2 + 20, 12), "PANEL 3: Deep Joint Synergy (Magenta = Radar Echoes)", fill=(255, 105, 180), font=font)
+    draw.text((w * 2 + 20, 12), "PANEL 3: Intensity Overlay (Magenta = Bright SAR Pixels)", fill=(255, 105, 180), font=font)
 
     draw.line([(w, 0), (w, h + banner_h)], fill=(60, 65, 75), width=2)
     draw.line([(w * 2, 0), (w * 2, h + banner_h)], fill=(60, 65, 75), width=2)
@@ -237,8 +237,8 @@ def run_optical_sar(
 
     # 7. Deep Dual-Stream Fusion & Statistical Extraction
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    opt_t = None
-    sar_t = None
+    opt_tensor = None
+    sar_tensor = None
     fusion_net = None
 
     try:
@@ -261,9 +261,6 @@ def run_optical_sar(
         sar_min = round(float(sar_tensor.min().cpu()), 2)
         sar_max = round(float(sar_tensor.max().cpu()), 2)
 
-        min_db = round(float(20.0 * np.log10(max(sar_min, 1.0) / 255.0) - 5.0), 1)
-        max_db = round(float(20.0 * np.log10(max(sar_max, 1.0) / 255.0) - 5.0), 1)
-
         high_scatter_mask = sar_tensor > high_scatter_threshold
         high_scatter_count = int(high_scatter_mask.sum().cpu())
         total_pixels = w_opt * h_opt
@@ -281,45 +278,9 @@ def run_optical_sar(
         radar_dominant_mask = (sar_tensor > high_scatter_threshold) & (opt_luminance < 130.0)
         radar_dominant_count = int(radar_dominant_mask.sum().cpu())
 
-        # Neural Dual-Stream Feature Extraction & Synergy Estimation
-        fusion_net = DualStreamOpticalSARFusionNetwork(in_optical=3, in_sar=1, hidden_dim=16).to(device)
-        fusion_net.eval()
-
-        opt_input = (opt_tensor / 255.0).permute(2, 0, 1).unsqueeze(0)
-        sar_input = (sar_tensor / 255.0).unsqueeze(0).unsqueeze(0)
-
-        with torch.inference_mode():
-            f_opt, f_sar, synergy_map = fusion_net(opt_input, sar_input)
-            mean_synergy = round(float(synergy_map.mean().cpu()), 4)
-
-        # Empirical Ablation Study
-        # 1. Optical Only: evaluates texture variance and contrast resolution
         opt_contrast = round(float(opt_std / max(opt_mean, 1.0)), 4)
-        # 2. SAR Only: evaluates microwave backscatter dynamic range and structural edge clarity
         sar_contrast = round(float(sar_std / max(sar_mean, 1.0)), 4)
-        # 3. Joint Optical + SAR: cross-modal synergy gain
-        synergy_gain_pct = round(abs(1.0 - abs(pearson_r)) * 100.0, 2)
-
-        ablation_study = {
-            "optical_only": {
-                "metric_description": "Optical Luminance Dynamic Contrast",
-                "score": opt_contrast,
-                "limitation": "Degraded by atmospheric haze, shadows, and low solar angle",
-            },
-            "sar_only": {
-                "metric_description": "Microwave Backscatter Structural Contrast",
-                "score": sar_contrast,
-                "limitation": "Prone to speckle noise and terrain layover/foreshortening",
-            },
-            "joint_optical_sar": {
-                "metric_description": "Cross-Modal Synergy Index & Edge Corroboration",
-                "score": mean_synergy,
-                "synergy_gain_percentage": synergy_gain_pct,
-                "advantage": "All-weather structural delineation penetrating optical cloud/shadow obstructions",
-            },
-            "pearson_correlation": pearson_r,
-            "radar_dominant_anomalies": radar_dominant_count,
-        }
+        # Display-image statistics only; no learned fusion, calibrated dB or gain claim.
 
         latency_ms = round((time.perf_counter() - t_start) * 1000, 2)
 
@@ -330,36 +291,33 @@ def run_optical_sar(
             0.45 * fusion_overlay[high_sar_bool] + 0.55 * np.array([255, 20, 147], dtype=np.float32)
         ).astype(np.uint8)
 
-        out_dir = os.path.join("docs", "results")
-        os.makedirs(out_dir, exist_ok=True)
-        vis_path = os.path.join(out_dir, "optical_sar_execution_artifact.jpg")
+        vis_path = new_artifact_path("optical_sar")
         render_optical_sar_composite(opt_img, sar_img, fusion_overlay, vis_path, sar_classification)
 
-        provenance_label = "Proxy Simulated SAR (Physical speckle model)" if sar_classification == "proxy_sar" else "Spaceborne SAR (Genuine satellite radar)"
-
+        provenance_label = ("Filename indicates proxy/simulated SAR; not independently verified"
+                            if sar_classification == "proxy_sar" else "Unverified SAR provenance")
         answer = (
-            f"Optical-SAR Joint Analysis Complete:\n"
-            f"1. Optical Spectrum: Mean={opt_mean:.1f} (Std={opt_std:.1f}, Contrast={opt_contrast:.2f}).\n"
-            f"2. SAR Radar: Mean={sar_mean:.1f} (Std={sar_std:.1f}, Contrast={sar_contrast:.2f}, Est. dB: [{min_db}, {max_db}]).\n"
-            f"3. Joint Multimodal Synergy: Identified {high_scatter_count:,} high-backscatter pixels ({high_scatter_pct:.2f}%) "
-            f"and {radar_dominant_count:,} radar-dominant anomalies. Pearson r = {pearson_r:.3f}, Multimodal Synergy Gain = {synergy_gain_pct:.1f}%.\n"
-            f"4. Provenance: {provenance_label}."
+            f"Optical/SAR display-image statistics: optical mean={opt_mean:.1f}, "
+            f"SAR mean={sar_mean:.1f}. Identified {high_scatter_count:,} pixels above "
+            f"the intensity threshold ({high_scatter_pct:.2f}%) and {radar_dominant_count:,} "
+            f"bright SAR/dark optical pixels. Pearson r={pearson_r:.3f}. "
+            f"{provenance_label}. These are uncalibrated intensities, not physical backscatter "
+            "or evidence of improved task accuracy. Alignment requires independent verification."
         )
 
         evidence_dict = {
-            "type": "optical_sar_deep_synergy_overlay",
+            "type": "optical_sar_intensity_overlay",
             "optical_image_reference": optical_image_path,
             "sar_image_reference": sar_image_path,
             "sar_data_classification": sar_classification,
             "optical_dimensions": {"width": w_opt, "height": h_opt},
             "sar_dimensions": {"width": w_sar, "height": h_sar},
             "optical_stats": {"mean": opt_mean, "std": opt_std, "contrast": opt_contrast},
-            "sar_stats": {"mean": sar_mean, "std": sar_std, "contrast": sar_contrast, "min_db": min_db, "max_db": max_db},
+            "sar_stats": {"mean": sar_mean, "std": sar_std, "contrast": sar_contrast},
             "high_backscatter_count": high_scatter_count,
             "high_backscatter_percentage": high_scatter_pct,
             "cross_modal_correlation": pearson_r,
             "radar_dominant_anomalies": radar_dominant_count,
-            "ablation_study": ablation_study,
             "annotated_artifact": vis_path,
             "latency_ms": latency_ms,
         }
@@ -372,15 +330,14 @@ def run_optical_sar(
             "optical_image_reference": optical_image_path,
             "sar_image_reference": sar_image_path,
             "sar_data_classification": sar_classification,
-            "confidence": 1.0,
+            "confidence": None,
             "latency_ms": latency_ms,
             "evidence": [evidence_dict],
-            "evidence_reference": "optical_sar_deep_synergy_overlay",
+            "evidence_reference": "optical_sar_intensity_overlay",
             "metadata": {
                 "sar_data_classification": sar_classification,
                 "high_scatter_threshold": high_scatter_threshold,
-                "ablation_study": ablation_study,
-            }
+                }
         }
 
     except Exception as exec_err:

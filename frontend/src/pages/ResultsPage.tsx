@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAnalysis } from '../context/AnalysisContext';
 import { useRouter } from '../context/RouterContext';
 import { getArtifactUrl } from '../api/client';
+import { downloadReport } from '../utils/downloadReport';
 import { ImageViewer, type BoundingBox } from '../components/common/ImageViewer';
 
 export const ResultsPage: React.FC = () => {
@@ -30,19 +31,22 @@ export const ResultsPage: React.FC = () => {
 
   const isProxySar =
     evidence.sar_data_classification === 'proxy_sar' ||
-    metadata.sar_data_classification === 'proxy_sar' ||
-    result.selected_tool === 'OPTICAL_SAR';
+    metadata.sar_data_classification === 'proxy_sar';
 
   const isSyntheticChange =
-    result.selected_tool === 'CHANGE_DETECTION' ||
-    evidence.dataset_note ||
-    metadata.data_classification;
+    metadata.data_classification === 'controlled_synthetic';
 
   // Extract confidence values
   const isObjectConf = typeof result.confidence === 'object' && result.confidence !== null;
-  const confLevel = isObjectConf ? (result.confidence as any).level : (typeof result.confidence === 'number' ? (result.confidence >= 0.7 ? 'HIGH' : result.confidence >= 0.4 ? 'MEDIUM' : 'LOW') : 'LOW');
+  const confLevel = isObjectConf ? ((result.confidence as any).score == null ? 'UNAVAILABLE' : (result.confidence as any).level) : (typeof result.confidence === 'number' ? (result.confidence >= 0.7 ? 'HIGH' : result.confidence >= 0.4 ? 'MEDIUM' : 'LOW') : 'UNAVAILABLE');
   const confScore = isObjectConf ? (result.confidence as any).score : (typeof result.confidence === 'number' ? result.confidence : null);
   const confExplanation = isObjectConf ? (result.confidence as any).explanation : null;
+  const pairKind = metadata.pair_kind || (state.secondPreview ? 'bi-temporal pair' : state.sarPreview ? 'optical + SAR pair' : 'single image');
+  const evidenceCount = result.visual_evidence?.length ?? 0;
+  const regionCount = Array.isArray(metadata.regions) ? metadata.regions.length : Array.isArray(evidence.regions) ? evidence.regions.length : 0;
+  const sceneDescription = result.image_description || (result.visual_evidence?.length
+    ? `The selected workflow found ${result.visual_evidence.map((item) => item.category.replace(/_/g, ' ')).join(', ')} in the supplied ${pairKind}. These are the observable cues used to support the answer.`
+    : 'The analysis did not return a separate scene description. Review the answer and visual evidence below for the supported interpretation.');
 
   // Bounding boxes
   const boundingBoxes: BoundingBox[] = [];
@@ -51,7 +55,7 @@ export const ResultsPage: React.FC = () => {
       boundingBoxes.push({
         coords,
         label: state.query ? state.query.replace(/locate /i, '').replace(/the /i, '') : 'Object',
-        score: evidence.detector_scores ? evidence.detector_scores[idx] : confScore ?? undefined,
+        score: evidence.confidence_scores ? evidence.confidence_scores[idx] : confScore ?? undefined,
       });
     });
   }
@@ -62,6 +66,8 @@ export const ResultsPage: React.FC = () => {
       <div className="report-header-strip">
         <div className="report-title-group">
           <h2>SCIENTIFIC ANALYSIS REPORT</h2>
+          <button type="button" className="btn-secondary" onClick={() => downloadReport(result, state.query, 'md')}>Download report</button>
+          <button type="button" className="btn-secondary" onClick={() => downloadReport(result, state.query, 'json')}>Download data</button>
         </div>
 
         <div className="report-meta-tags">
@@ -123,18 +129,22 @@ export const ResultsPage: React.FC = () => {
             <p className="report-answer-text">{result.answer}</p>
           </div>
 
-          {/* Scene Interpretation */}
-          {result.image_description && (
-            <>
-              <hr className="report-hairline-divider" />
-              <div className="report-section">
-                <span className="report-section-label">IMAGE DESCRIPTION / CONTEXT</span>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                  {result.image_description}
-                </p>
-              </div>
-            </>
-          )}
+          <div className="report-scene-summary">
+            <div className="scene-summary-main">
+              <span className="report-section-label">IMAGE &amp; SCENE DESCRIPTION</span>
+              <p className="scene-description-lead">
+                {sceneDescription}
+              </p>
+              <p className="scene-description-note">
+                This description summarizes observable image content used by the selected specialist. It does not add information that was not supported by the input raster.
+              </p>
+            </div>
+            <div className="scene-summary-facts" aria-label="Image analysis context">
+              <div className="scene-fact"><span>INPUT CONFIGURATION</span><strong>{pairKind}</strong></div>
+              <div className="scene-fact"><span>VISUAL SIGNALS</span><strong>{evidenceCount || '—'}</strong></div>
+              <div className="scene-fact"><span>SPATIAL REGIONS</span><strong>{regionCount || '—'}</strong></div>
+            </div>
+          </div>
 
           {/* Visual Evidence (Numbered list) */}
           {result.visual_evidence && result.visual_evidence.length > 0 && (
@@ -247,13 +257,14 @@ export const ResultsPage: React.FC = () => {
       {/* TAB 4: Technical Disclosures */}
       {activeReportTab === 'limitations' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          {result.limitations?.map((limitation, index) => <p key={index}>{limitation}</p>)}
           {isProxySar && (
             <div style={{ background: 'var(--surface-primary)', border: '1px solid var(--border-default)', borderLeft: '3px solid var(--color-warning)', padding: 'var(--space-4)', borderRadius: 'var(--radius-panel)' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--color-warning)', marginBottom: '4px' }}>
                 DATA CLASSIFICATION: PROXY SAR
               </div>
               <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                The radar backscatter imagery evaluated represents a calibrated surface roughness proxy. Genuine spaceborne ISRO/SAC Cartosat-2S and RISAT-1A co-registered pairs remain restricted under institutional licensing.
+                The filename indicates a proxy image. Sensor provenance and radiometric calibration have not been independently verified.
               </p>
             </div>
           )}
@@ -271,10 +282,10 @@ export const ResultsPage: React.FC = () => {
 
           <div style={{ background: 'var(--surface-primary)', border: '1px solid var(--border-default)', padding: 'var(--space-4)', borderRadius: 'var(--radius-panel)' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '4px' }}>
-              REQUIREMENT #5: PARTIAL / OPEN
+              MODEL LIMITATIONS
             </div>
             <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-              Evaluated open-source domain-adapted remote-sensing VLM checkpoint zero-shot on RSVQA-LR (35.0% EM). Custom team-owned fine-tuning on Indian EO data is an active roadmap milestone.
+              See Evaluation for the latest controlled measurements. A small adaptation corpus does not establish broad accuracy or operational readiness.
             </p>
           </div>
         </div>

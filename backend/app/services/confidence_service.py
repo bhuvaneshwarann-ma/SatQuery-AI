@@ -454,27 +454,12 @@ def evaluate_change_confidence(
     Evaluates Bi-Temporal Change Detection evidence strength.
     Preserves area-stability margin semantics with explicit controlled-synthetic disclosure.
     """
-    margin = float(stability_margin) if stability_margin is not None else 0.0
-    
-    if margin >= 0.70:
-        level = ConfidenceLevel.HIGH
-    elif margin >= 0.40:
-        level = ConfidenceLevel.MEDIUM
-    else:
-        level = ConfidenceLevel.LOW
-
-    explanation = (
-        f"Change evidence confidence: model-derived heuristic (Area stability margin: {margin * 100:.1f}%, "
-        f"{changed_pixels:,} changed pixels). Unsupervised feature differencing; not an operational accuracy benchmark."
-    )
-
     return {
-        "level": level.value,
-        "score": round(margin, 4),
-        "model_confidence": round(margin, 4),
-        "type": "model-derived-uncalibrated",
-        "explanation": explanation,
+        "level": "LOW", "score": None, "model_confidence": None,
+        "type": "descriptive-area-statistic",
+        "unchanged_fraction": stability_margin,
         "changed_pixels": changed_pixels,
+        "explanation": "Unchanged area is a descriptive statistic, not a probability of correct change detection.",
     }
 
 
@@ -487,26 +472,12 @@ def evaluate_optical_sar_confidence(
     Evaluates Optical-SAR cross-modal evidence strength.
     Derives score directly from radiometric Pearson correlation r.
     """
-    corr = float(correlation) if correlation is not None else 0.0
-    
-    if corr >= 0.50:
-        level = ConfidenceLevel.HIGH
-    elif corr >= 0.30:
-        level = ConfidenceLevel.MEDIUM
-    else:
-        level = ConfidenceLevel.LOW
-
-    explanation = (
-        f"Cross-modal radiometric correlation: Pearson r={corr:.3f} across {anomaly_pixels:,} radar anomaly pixels. "
-        "Measures spatial-matrix correlation; task-level superiority has not been quantitatively established."
-    )
-
     return {
-        "level": level.value,
-        "score": round(corr, 3),
-        "model_confidence": round(corr, 3),
-        "type": "model-derived-uncalibrated",
-        "explanation": explanation,
-        "correlation": round(corr, 3),
+        "level": "LOW",
+        "score": None,
+        "model_confidence": None,
+        "type": "descriptive-statistics-not-confidence",
+        "explanation": "Correlation is an image statistic, not confidence, physical backscatter, or task improvement.",
+        "correlation": correlation,
         "anomaly_pixels": anomaly_pixels,
     }

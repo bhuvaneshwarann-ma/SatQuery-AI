@@ -10,6 +10,16 @@ export const HistoryPage: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTask, setFilterTask] = useState<string>('ALL');
+  const [filterStatus, setFilterStatus] = useState<string>('ALL');
+  const [filterSensor, setFilterSensor] = useState<string>('ALL');
+  const [filterDate, setFilterDate] = useState<string>('ALL');
+
+  const sensorFor = (item: HistoryEntry) => {
+    const kind = item.result?.metadata?.pair_kind;
+    if (kind === 'optical_sar' || item.sarPreview) return 'OPTICAL + SAR';
+    if (kind === 'temporal' || item.secondPreview) return 'BI-TEMPORAL';
+    return 'SINGLE IMAGE';
+  };
 
   const filtered = history.filter((item) => {
     const matchesSearch =
@@ -20,8 +30,12 @@ export const HistoryPage: React.FC = () => {
 
     const matchesTask =
       filterTask === 'ALL' || item.task.toUpperCase() === filterTask.toUpperCase();
+    const matchesStatus = filterStatus === 'ALL' || item.status.toUpperCase() === filterStatus;
+    const matchesSensor = filterSensor === 'ALL' || sensorFor(item) === filterSensor;
+    const ageDays = (Date.now() - new Date(item.timestamp).getTime()) / 86400000;
+    const matchesDate = filterDate === 'ALL' || (filterDate === 'TODAY' ? ageDays < 1 : filterDate === '7D' ? ageDays < 7 : ageDays < 30);
 
-    return matchesSearch && matchesTask;
+    return matchesSearch && matchesTask && matchesStatus && matchesSensor && matchesDate;
   });
 
   const handleReopen = (item: HistoryEntry) => {
@@ -75,7 +89,7 @@ export const HistoryPage: React.FC = () => {
       </div>
 
       {/* Toolbar */}
-      <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', background: 'var(--surface-primary)', border: '1px solid var(--border-default)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-control)' }}>
+      <div className="history-toolbar">
         <input
           type="text"
           placeholder="Filter queries, models, or tasks..."
@@ -95,6 +109,15 @@ export const HistoryPage: React.FC = () => {
           <option value="CHANGE_DETECTION">Change Detection</option>
           <option value="OPTICAL_SAR">Optical-SAR</option>
         </select>
+        <select value={filterSensor} onChange={(e) => setFilterSensor(e.target.value)} aria-label="Filter by sensor">
+          <option value="ALL">All Sensors</option><option value="SINGLE IMAGE">Single image</option><option value="BI-TEMPORAL">Bi-temporal</option><option value="OPTICAL + SAR">Optical + SAR</option>
+        </select>
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} aria-label="Filter by status">
+          <option value="ALL">All Status</option><option value="SUCCESS">Success</option><option value="ERROR">Error</option>
+        </select>
+        <select value={filterDate} onChange={(e) => setFilterDate(e.target.value)} aria-label="Filter by date">
+          <option value="ALL">Any time</option><option value="TODAY">Today</option><option value="7D">Last 7 days</option><option value="30D">Last 30 days</option>
+        </select>
       </div>
 
       {/* Tabular Audit Table */}
@@ -102,6 +125,7 @@ export const HistoryPage: React.FC = () => {
         <table className="data-table-technical">
           <thead>
             <tr>
+              <th style={{ width: '58px' }}>Scene</th>
               <th style={{ width: '120px' }}>Task</th>
               <th>Analytical Query</th>
               <th style={{ width: '160px' }}>Confidence</th>
@@ -113,7 +137,7 @@ export const HistoryPage: React.FC = () => {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: 'var(--space-6)', color: 'var(--text-muted)' }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: 'var(--space-6)', color: 'var(--text-muted)' }}>
                   {history.length === 0 ? 'No completed analyses in local storage.' : 'No analyses match active filter.'}
                 </td>
               </tr>
@@ -128,11 +152,12 @@ export const HistoryPage: React.FC = () => {
                     onClick={() => handleReopen(item)}
                     style={{ cursor: 'pointer' }}
                   >
+                    <td><div className="history-thumb">{item.primaryPreview ? <img src={item.primaryPreview} alt="" /> : <span>EO</span>}</div></td>
                     <td style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>
                       {item.task}
                     </td>
                     <td style={{ color: 'var(--text-primary)' }}>
-                      "{item.query}"
+                      <strong className="history-query-preview">{item.query}</strong><span className="history-sensor-label">{sensorFor(item)}</span>
                     </td>
                     <td>
                       <span style={{
@@ -159,6 +184,7 @@ export const HistoryPage: React.FC = () => {
                       >
                         Re-run
                       </button>
+                      <button type="button" className="history-open-btn" onClick={(e) => { e.stopPropagation(); handleReopen(item); }}>Open</button>
                       <button
                         type="button"
                         style={{ background: 'transparent', border: 'none', color: 'var(--color-error)', fontSize: '0.75rem', cursor: 'pointer' }}
